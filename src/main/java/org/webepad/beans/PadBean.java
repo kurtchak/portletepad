@@ -3,10 +3,10 @@ package org.webepad.beans;
 import java.util.List;
 
 import javax.faces.bean.ManagedBean;
+import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.SessionScoped;
 import javax.faces.component.html.HtmlDataTable;
 
-import org.webepad.dao.ChangesetDAO;
 import org.webepad.dao.PadDAO;
 import org.webepad.dao.hibernate.HibernateDAOFactory;
 import org.webepad.model.Changeset;
@@ -19,7 +19,6 @@ import org.webepad.utils.DateUtils;
 @SessionScoped
 public class PadBean {
 	private PadDAO padDAO = HibernateDAOFactory.getInstance().getPadDAO();
-	private ChangesetDAO changesetDAO = HibernateDAOFactory.getInstance().getChangesetDAO();
 
 	private String padname;
 	private String number;
@@ -28,6 +27,9 @@ public class PadBean {
 	
 	private HtmlDataTable padListTable;
 
+	@ManagedProperty(value="#{userBean}")
+	public UserBean userBean;
+	
 	public PadBean() {
 	}
 	
@@ -151,11 +153,24 @@ public class PadBean {
 		this.padListTable = padListTable;
 	}
 
-	public ChangesetDAO getChangesetDAO() {
-		return changesetDAO;
+	public UserBean getUserBean() {
+		return userBean;
 	}
 
-	public void setChangesetDAO(ChangesetDAO changesetDAO) {
-		this.changesetDAO = changesetDAO;
+	public void setUserBean(UserBean userBean) {
+		this.userBean = userBean;
+	}
+
+	public boolean isOnlyMyChangesets() {
+		if (pad != null) {
+			for (Changeset c : pad.getChangesets()) {
+				if (!c.getCreator().equals(userBean.getActualUser())) {
+					return false; 
+				}
+			}
+			return true;
+		} else {
+			return false;
+		}
 	}
 }

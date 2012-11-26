@@ -153,13 +153,13 @@ public class PadAssembler {
 		return padContent.getViewRepr();
 	}
 
-	public void applyRemoteChangeset(int spanId, int spanPos, String charbank, int leftId, int rightId, Integer offset, Session session, int oper) throws Exception {
+	public void applyRemoteChangeset(Changeset c, int spanId, int spanPos, int leftId, int rightId) throws Exception {
 		log.info("=> APPLY REMOTE CHANGESET");
 		TextSlice ts = padContent.findTextSlice(spanId);
-			if (oper == Changeset.WRITE) { log.info("OPERATION WRITE");
+			if (c.getAction() == Changeset.WRITE) { log.info("OPERATION WRITE");
 				if (ts != null) { log.info("FOUND:"+ts.getHtml());
 					if (ts.getPlainLen() >= spanPos) { log.info("SPANPOS <= PLAINLEN");
-						if (charbank == "") { log.info("NEW LINE CROSSING");
+						if (c.getCharbank() == "") { log.info("NEW LINE CROSSING");
 							TextSlice a = ts;
 							TextSlice b = new TextSlice(rightId);
 							b.setSession(ts.getSession());
@@ -169,7 +169,7 @@ public class PadAssembler {
 							padContent.insertTextSlice(brTs, padContent.indexOf(a)+1);
 							padContent.insertTextSlice(b, padContent.indexOf(brTs)+1);
 						} else { log.info("SAME SESSION");
-							ts.setPlain(ts.getPlain().substring(0,spanPos)+charbank+ts.getPlain().substring(spanPos));
+							ts.setPlain(ts.getPlain().substring(0,spanPos)+c.getCharbank()+ts.getPlain().substring(spanPos));
 						}
 					} else {
 						throw new Exception("Given SpanPos("+spanPos+") exceeds length("+ts.getPlainLen()+")  of targeted TextSlice");
@@ -178,10 +178,10 @@ public class PadAssembler {
 					TextSlice leftTs = padContent.findTextSlice(leftId);
 					if (leftTs != null) { log.info("FOUND LEFT SIBL:"+leftTs.getHtml());
 						TextSlice newTs;
-						if (charbank != "") {
+						if (c.getCharbank() != "") {
 							newTs = new TextSlice(spanId);
 							newTs.setSession(session);
-							newTs.setPlain(charbank);
+							newTs.setPlain(c.getCharbank());
 						} else {
 							newTs = new TextSlice(session, TextSlice.BR);
 						}
@@ -197,33 +197,33 @@ public class PadAssembler {
 						TextSlice rightTs = padContent.findTextSlice(rightId);
 						if (rightTs != null) { log.info("FOUND RIGHT SIBL:"+rightTs.getHtml());
 							TextSlice newTs;
-							if (charbank != "") {
+							if (c.getCharbank() != "") {
 								newTs = new TextSlice(spanId);
 								newTs.setSession(session);
-								newTs.setPlain(charbank);
+								newTs.setPlain(c.getCharbank());
 							} else {
 								newTs = new TextSlice(session, TextSlice.BR);
 							}
 							padContent.insertTextSlice(newTs, padContent.indexOf(rightTs));
-						} else if (offset >= 0) {
-							TextSlice offTs = padContent.findTextSliceByOffset(offset);
+						} else if (c.getOffset() >= 0) {
+							TextSlice offTs = padContent.findTextSliceByOffset(c.getOffset());
 							if (offTs != null && offTs.getLastActivePos() == offTs.getPlainLen()) {
 								TextSlice newTs;
-								if (charbank == "") {
+								if (c.getCharbank() == "") {
 									newTs = new TextSlice(TextSlice.BR);
 								} else {
-									newTs = new TextSlice(session, charbank);
+									newTs = new TextSlice(session, c.getCharbank());
 								}
 								padContent.insertTextSlice(newTs, padContent.indexOf(offTs)+1);
 							} else {
-								throw new Exception("The offset("+offset+") exceeds length of text("+getPlainTextLength()+") or lastActivePos is wrong set.");
+								throw new Exception("The offset("+c.getOffset()+") exceeds length of text("+getPlainTextLength()+") or lastActivePos is wrong set.");
 							}
 						} else {
 							throw new Exception("There was no TextSlice received.");
 						}
 					}
 				}
-			} else if (oper == Changeset.DELETE) { log.info("OPERATION DELETE");
+			} else if (c.getAction() == Changeset.DELETE) { log.info("OPERATION DELETE");
 				if (spanId == 0) {
 					TextSlice leftTs = leftId == 0 ? null : padContent.findTextSlice(leftId);
 					TextSlice rightTs = rightId == 0 ? null : padContent.findTextSlice(rightId);
@@ -233,7 +233,7 @@ public class PadAssembler {
 						if (rightTs != null) {
 							ts = padContent.getPrevTextSlice(rightTs);
 						} else {
-							ts = padContent.findTextSliceByOffset(offset);
+							ts = padContent.findTextSliceByOffset(c.getOffset());
 						}
 					}
 					if (ts != null) {
@@ -247,7 +247,7 @@ public class PadAssembler {
 						padContent.removeSlice(ts);
 					}
 				}
-			} else if (oper == Changeset.ATTR_CHANGE) { log.info("OPERATION ATTR_CHANGE");
+			} else if (c.getAction() == Changeset.ATTR_CHANGE) { log.info("OPERATION ATTR_CHANGE");
 			} else { log.info("UNKNOWN OPERATION"); }
 	}
 }

@@ -174,23 +174,6 @@ td.lock:hover {
     float:left;
 }
 
-.spadInfo .chooseColorPanel:hover {
-    display:relative;
-    cursor:pointer;
-    margin:0;
-    float:right;
-    height:10px;
-    width:14px;
-    padding:0 0 5px 0;
-    background-color:red;
-    text-align:center;
-    font-weight:bold;
-    font-size:11px;
-    color:white;
-    border-radius:3px;
-    z-index:100000000000000000;
-}
-
 .padInfo .colorItem {
 	margin: 0 5px;
 	padding: 0;

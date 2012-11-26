@@ -9,6 +9,8 @@ import javax.naming.NamingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webepad.beans.SessionBean;
+import org.webepad.dao.ChangesetDAO;
+import org.webepad.dao.hibernate.HibernateDAOFactory;
 import org.webepad.exceptions.MalformedMessage;
 import org.webepad.exceptions.NoSuchPadException;
 import org.webepad.exceptions.NoSuchUserException;
@@ -24,8 +26,8 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 
 	private static final Pattern JOIN_LEAVE_MSG_PATTERN = Pattern.compile("^((J|L):([\\d]+):([\\d]+))$");
 	private static final Pattern RESPONSE_MSG_PATTERN = Pattern.compile("^R:([\\d]+):([\\d]+):([\\d]+):([\\d]+)$");
-	public static final Pattern CHANGESET_MSG_PATTERN = Pattern.compile("^C:([WD]):([\\d]+):([\\d]+):([\\d]+):([^\\$]+)\\$(.)?(.*)_(\\d+):(\\d+)_\\[(\\d*),(\\d*)\\](\\d+)(#[0-9a-fA-F]{6})(.*)$");
-	private static final Pattern USERCOLOR_MSG_PATTERN = Pattern.compile("^UC:([\\d]+):([\\d]+):(#[0-9a-fA-F]{6})-(#[0-9a-fA-F]{6})$");
+	public static final Pattern CHANGESET_MSG_PATTERN = Pattern.compile("^C:([WD]):([\\d]+);_(\\d+):(\\d+)_\\[(\\d*),(\\d*)\\]$");
+	private static final Pattern USERCOLOR_MSG_PATTERN = Pattern.compile("^UC:([\\d]+):([\\d]+):(#[a-zA-Z0-9]{6})$");
 
 	private Listener listener;
 	private Sender sender;
@@ -37,12 +39,15 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 //	private static String TOPIC_NAME = "java:/topic/padTopic";
 	private static String TOPIC_NAME = "jms/topic/padTopic";
 //	private static String TOPIC_URL = "127.0.0.1:9999";
-	private static String TOPIC_URL = "remote://localhost:4447";
+	private static String TOPIC_URL = System.getProperty("jboss.bind.address");
+//	private static String TOPIC_URL = "remote://localhost:4447";
 	private static String JBOSS_USER = "kurtcha";
 	private static String JBOSS_PASS = "portletepad";
 	
 	public Session session;
 	private SessionBean sessionBean;
+
+	private ChangesetDAO changesetDAO = HibernateDAOFactory.getInstance().getChangesetDAO();
 	
 	public void publishMessage(String msg) {
 		try {
@@ -71,8 +76,8 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 				Long userId = Long.decode(m.group(4));
 				// receiving only events from the same pad and not from myself
 				if (padId.equals(session.getPad().getId()) && !userId.equals(session.getUser().getId())) {
-					log.info("editorspanPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId());
-					sessionBean.remoteUserChange(action, padId, userId, null, null, null, null, null, null, null, null, null, null, null);
+					log.info("\nPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId());
+					sessionBean.processRemotePresence(action, padId, userId);
 				}
 			} else if (mr.find()) {
 				String action = "R";
@@ -83,35 +88,28 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 				// receiving only response event addressed to myself
 				if (toPadId.equals(session.getPad().getId()) && toUserId.equals(session.getUser().getId())) {
 					log.info("\nPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId());
-					sessionBean.remoteUserChange(action, fromPadId, fromUserId, null, null, null, null, null, null, null, null, null, null, null);
+					sessionBean.processRemotePresence(action, fromPadId, fromUserId);
 				}
 			} else if (mc.find()) {
-				String action = "C";
-				String oper = mc.group(1);
-				Long userId = Long.decode(mc.group(2));
-				Long padId = Long.decode(mc.group(3));
-				Integer number = Integer.decode(mc.group(4));
-				String charbank = mc.group(6);
-				Integer spanId = Integer.decode(mc.group(8));
-				Integer spanPos = Integer.decode(mc.group(9));
-				Integer leftId = Integer.decode(mc.group(10));
-				Integer rightId = Integer.decode(mc.group(11));
-				Integer offset = Integer.decode(mc.group(12));
-				String fgColor = mc.group(13);
-				String hashCode = mc.group(14);
-				if (padId.equals(session.getPad().getId()) && !userId.equals(session.getUser().getId())) {
-					log.info("\nPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId()+",spanId:"+spanId+",spanPos:"+spanPos+",leftId:"+leftId+",rightId:"+rightId+",fgColor:"+fgColor);
-					sessionBean.remoteUserChange(action, padId, userId, number, spanId, spanPos, charbank, leftId, rightId, offset, fgColor, null, oper, hashCode);
+				Long cId = Long.decode(mc.group(2));
+				Integer spanId = Integer.decode(mc.group(3));
+				Integer spanPos = Integer.decode(mc.group(4));
+				Integer leftId = Integer.decode(mc.group(5));
+				Integer rightId = Integer.decode(mc.group(6));
+				Changeset c = changesetDAO.getChangeset(cId);
+				if (c.getPad().getId().equals(session.getPad().getId()) && !c.getUser().getId().equals(session.getUser().getId())) {
+					log.info("\nPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId()+",spanId:"+spanId+",spanPos:"+spanPos+",leftId:"+leftId+",rightId:"+rightId);
+					sessionBean.processRemoteChangeset(c, spanId, spanPos, leftId, rightId);
 				}
 			} else if (mu.find()) {
 				String action = "UC";
 				Long userId = Long.decode(mu.group(1));
 				Long padId = Long.decode(mu.group(2));
-				String prevFgColor = mu.group(3);
-				String fgColor = mu.group(4);
+				String prevColor = mu.group(3);
+				Session session = sessionBean.findSession(padId, userId);
 				if (padId.equals(session.getPad().getId()) && !userId.equals(session.getUser().getId())) {
-					log.info("\nPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId()+",fgColor:"+fgColor);
-					sessionBean.remoteUserChange(action, padId, userId, null, null, null, null, null, null, null, fgColor, prevFgColor, null, null);
+					log.info("\nPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId());
+					sessionBean.processRemoteUserChange(action, session, prevColor);
 				}
 			} else {
 				throw new MalformedMessage(msg);

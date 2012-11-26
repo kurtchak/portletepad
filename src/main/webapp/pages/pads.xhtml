@@ -79,7 +79,7 @@
 								<f:facet name="header">
 									<h:outputText value="Delete" />
 								</f:facet>
-								<a4j:commandLink render="padForm" rendered="#{userBean.actualUser == pad.creator or empty pad.changesets}"
+								<a4j:commandLink render="padForm" rendered="#{userBean.actualUser == pad.creator or padBean.onlyMyChangesets}"
 									action="#{apiBean.deletePad}" value="X" execute="@form"/>
 							</h:column>
 						</h:dataTable>

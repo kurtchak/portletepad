@@ -22,7 +22,6 @@ import org.webepad.exceptions.UninitializedObjectException;
 import org.webepad.model.Changeset;
 import org.webepad.model.Pad;
 import org.webepad.model.Session;
-import org.webepad.model.User;
 import org.webepad.utils.DateUtils;
 import org.webepad.utils.ExceptionHandler;
 
@@ -90,7 +89,7 @@ public class SessionBean {
 		return sessionDAO.readSessions();
 	}
 
-	private Session findSession(Long padId, Long userId) {
+	public Session findSession(Long padId, Long userId) {
 		return sessionDAO.findSession(padId, userId);
 	}
 
@@ -110,51 +109,55 @@ public class SessionBean {
 		activeSessions.remove(session);
 	}
 
-	//////////////////////////////////////////////
-	// VALUE LISTENER FOR AJAX PUSH COMPONENT
-	public void remoteUserChange(String action, Long padId, Long userId, Integer number, Integer spanId, Integer spanPos, String charbank, Integer leftId, Integer rightId, Integer offset, String fgColor, String prevFgColor, String oper, String hashCode) throws Exception {
-		User user = userBean.getUser(userId);
-		Pad pad = padBean.getPad(padId);
-		if (user == null) {
+	// processing the presence info message
+	public void processRemotePresence(String action, Long padId, Long userId) throws NoSuchUserException, NoSuchPadException {
+		if (userBean.getUser(userId) == null) {
 			throw new NoSuchUserException();
-		} else if (pad == null) {
+		} else if (padBean.getPad(padId) == null) {
 			throw new NoSuchPadException();
 		} else {
 			Session session = findSession(padId, userId);
 			if (JOIN.equals(action) && !activeSessions.contains(session)) {
 				addActiveSession(session);
-				sendResponse(padId,userId);
+				sendResponse(padId, userId);
 			} else if (JOIN_RESPONSE.equals(action) && !activeSessions.contains(session)) {
 				addActiveSession(session);
 			} else if (LEAVE.equals(action)) {
 				removeActiveSession(session);
-			} else if (CHANGESET.equals(action)) {
-				if (!receivedChangesetHashCodes.contains(hashCode)) {
-					receivedChangesetHashCodes.add(hashCode);
-					log.info("REMOTE CHANGESET ADDED: "+charbank+"|"+spanId);
-					int operation = "W".equals(oper) ? Changeset.WRITE : "D".equals(oper) ? Changeset.DELETE : Changeset.ATTR_CHANGE;
-					processRemoteChangeOnServer(spanId, spanPos, charbank, leftId, rightId, session, operation, offset);
-					refreshPadContent();
-					// TODO: replace with better solution
-					String remoteChangeString = generateRemoteChangeString(action, spanId, spanPos, charbank, leftId, rightId, offset, fgColor, oper);
-					if (remoteChangesetsQueue.isEmpty()) {
-						processToView(remoteChangeString);
-					} else {
-						publishToQueue(remoteChangeString);
-					}
-				} else {
-					throw new Exception("Received duplicated changeset info message: "+number.toString());
-				}
-			} else if (USERCOLOR.equals(action)) {
-				activeSessions.get(activeSessions.indexOf(session)).setColorCode(fgColor);
-				processToView("UC:"+prevFgColor+"to"+fgColor);
 			}
 		}
 	}
 
-	private void processRemoteChangeOnServer(int spanId, int spanPos, String charbank, int leftId, int rightId, Session session, int oper, Integer offset) throws Exception {		
+	public void processRemoteChangeset(Changeset c, Integer spanId, Integer spanPos, Integer leftId, Integer rightId) throws Exception {
+		Session session = loadSession(c.getSession().getId());
+		if (session == null) {
+			throw new Exception("Received session wasn't found.");
+		}
+		if (!receivedChangesetHashCodes.contains(String.valueOf(c.hashCode()))) {
+			receivedChangesetHashCodes.add(String.valueOf(c.hashCode()));
+			processRemoteChangeOnServer(c, spanId, spanPos, leftId, rightId);
+			refreshPadContent();
+			String remoteChangeString = generateRemoteChangeString(c, spanId, spanPos, leftId, rightId);
+			if (remoteChangesetsQueue.isEmpty()) {
+				processToView(remoteChangeString);
+			} else {
+				publishToQueue(remoteChangeString);
+			}
+		} else {
+			throw new Exception("Received duplicated changeset info message: "+number.toString());
+		}
+	}
+	
+	public void processRemoteUserChange(String action, Session session, String prevColor) throws MessageException {
+		if (USERCOLOR.equals(action)) {
+			activeSessions.get(activeSessions.indexOf(this.session)).setColorCode(this.session.getColorCode());
+			processToView("UC:"+prevColor+"to"+this.session.getColorCode());
+		}
+	}
+
+	private void processRemoteChangeOnServer(Changeset c, int spanId, int spanPos, int leftId, int rightId) throws Exception {		
 		PadAssembler padAssembler = this.session.getPadAssembler();
-		padAssembler.applyRemoteChangeset(spanId, spanPos, charbank, leftId, rightId, offset, session, oper);
+		padAssembler.applyRemoteChangeset(c, spanId, spanPos, leftId, rightId);
 	}
 
 	private void publishToQueue(String receivedString) {
@@ -174,20 +177,21 @@ public class SessionBean {
 		pushBean.sendMessage(info);
 	}
 	
-	private String generateRemoteChangeString(String action, int spanId, int spanPos, String charbank, int leftId, int rightId, Integer offset, String fgColor, String oper) {
+	private String generateRemoteChangeString(Changeset c, int spanId, int spanPos, int leftId, int rightId) {
 		StringBuilder sb = new StringBuilder();
 		// IDENTIFICATION OF SENDER
 		sb.append("@[p"+session.getPad().getId()+"u"+session.getUser().getId()+"]");
+		int operation = "W".equals(c.getAction()) ? Changeset.WRITE : "D".equals(c.getAction()) ? Changeset.DELETE : Changeset.ATTR_CHANGE;
 		
-		sb.append(action).append(":");
-		sb.append(oper).append(":");
+		sb.append("C").append(":");
+		sb.append(operation).append(":");
 		sb.append(spanId).append(":");
 		sb.append(spanPos).append(":");
-		sb.append(charbank == null ? "" : charbank).append(":");
+		sb.append(c.getCharbank() == null ? "" : c.getCharbank()).append(":");
 		sb.append(leftId).append(":");
 		sb.append(rightId).append(":");
-		sb.append(offset).append(":");
-		sb.append(fgColor);
+		sb.append(c.getOffset()).append(":");
+		sb.append(c.getSession().getColorCode());
 		return sb.toString();
 	}
 

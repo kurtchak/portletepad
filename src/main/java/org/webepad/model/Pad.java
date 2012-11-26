@@ -228,4 +228,13 @@ public class Pad extends NamedTemporalEntity {
 	public Boolean getReadOnly() {
 		return readOnly == null ? false : readOnly;
 	}
+	
+	public Session getSessionByColor(String code) {
+		for (Session s : userSessions.values()) {
+			if (s.getColorCode().equals(code)) {
+				return s;
+			}
+		}
+		return null;
+	}
 }

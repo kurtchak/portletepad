@@ -134,19 +134,17 @@ public class Session extends TemporalEntity {
 	 * @param changeset
 	 * @return
 	 */
-	private String changesetMessage(Changeset changeset, int spanId, int spanPos, int leftId, int rightId, int offset) {
+	private String changesetMessage(Changeset c, int spanId, int spanPos, int leftId, int rightId) {
 		StringBuilder sb = new StringBuilder();
-		String action = changeset.getAction() == Changeset.WRITE ? "W" : (changeset.getAction() == Changeset.DELETE ? "D" : "X");
-		sb.append("C:").append(action).append(":").append(getUser().getId()).append(":").append(pad.getId()).append(":").append(changeset.getNumber()).append(":").append(changeset.getRule()).append("$").append(changeset.getCharbank());
-		if (changeset.getAttributePool() != null && changeset.getAttributePool().getAttributeItems() != null) {
-			for (AttributeItem item : changeset.getAttributePool().getAttributeItems()) {
+		String action = c.getAction() == Changeset.WRITE ? "W" : (c.getAction() == Changeset.DELETE ? "D" : "X");
+		sb.append("C:").append(action).append(":").append(c.getId()).append(";");
+		if (c.getAttributePool() != null && c.getAttributePool().getAttributeItems() != null) {
+			for (AttributeItem item : c.getAttributePool().getAttributeItems()) {
 				sb.append(item.getNumber()).append(":").append(item.getAttribute()).append("=").append(item.getValue());
 			}
 		}
 		sb.append("_").append(spanId).append(":").append(spanPos).append("_");
 		sb.append("[").append(leftId).append(",").append(rightId).append("]");
-		sb.append(offset).append(changeset.getSession().getColorCode());
-		sb.append(changeset.hashCode());
 		return sb.toString(); // C as Changeset created on Pad
 	}
 
@@ -158,7 +156,7 @@ public class Session extends TemporalEntity {
 	 */
 	private String colorChangeMessage(String prevColor, String newColor) {
 		StringBuilder sb = new StringBuilder();
-		sb.append("UC:").append(getUser().getId()).append(":").append(getPad().getId()).append(":").append(prevColor).append("-").append(newColor);
+		sb.append("UC:").append(getUser().getId()).append(":").append(getPad().getId()).append(":").append(prevColor);
 		return sb.toString();
 	}
 	
@@ -192,9 +190,8 @@ public class Session extends TemporalEntity {
 				rightId = right != null && right.isTextSpan() ? right.getSpanId() : 0;
 				spanPos = touchedTs.getLastActivePos();
 			}
-			offset = changeset.getOffset();
 			// TODO: change name changeMessage to generateChangeMessage 
-			messageFactory.publishMessage(changesetMessage(changeset, spanId, spanPos, leftId, rightId, offset)); // korekcia pozicie +1
+			messageFactory.publishMessage(changesetMessage(changeset, spanId, spanPos, leftId, rightId)); // korekcia pozicie +1
 		} catch (Exception e) {
 			ExceptionHandler.handle(e);
 		}
