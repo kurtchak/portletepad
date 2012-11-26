@@ -39,8 +39,10 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 //	private static String TOPIC_NAME = "java:/topic/padTopic";
 	private static String TOPIC_NAME = "jms/topic/padTopic";
 //	private static String TOPIC_URL = "127.0.0.1:9999";
-	private static String TOPIC_URL = System.getProperty("jboss.bind.address");
-//	private static String TOPIC_URL = "remote://localhost:4447";
+	private static String TOPIC_URL = "remote://"
+			+ System.getProperty("jboss.bind.address") + ":" + 4447
+			+ System.getProperty("jboss.socket.binding.port-offset");
+	//	private static String TOPIC_URL = "remote://localhost:4447";
 	private static String JBOSS_USER = "kurtcha";
 	private static String JBOSS_PASS = "portletepad";
 	

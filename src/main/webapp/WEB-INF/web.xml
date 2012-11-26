@@ -83,6 +83,14 @@
     <async-supported>true</async-supported>
   </servlet>
   <context-param>
+    <param-name>jboss.bind.address</param-name>
+    <param-value>localhost</param-value>
+  </context-param>
+  <context-param>
+    <param-name>jboss.socket.binding.port-offset</param-name>
+    <param-value>0</param-value>
+  </context-param>
+  <context-param>
     <param-name>org.atmosphere.useBlocking</param-name>
     <param-value>true</param-value>
   </context-param>

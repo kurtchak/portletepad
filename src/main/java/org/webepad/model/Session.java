@@ -35,9 +35,7 @@ public class Session extends TemporalEntity {
 	private Date opened;
 	private Date lastSeen;
 	private Pad pad;
-
 	private PadAssembler padAssembler;
-	
 	private PadMessageFactory messageFactory = new CustomPadMessageFactory();
 
 	/////////////////////////////////////////

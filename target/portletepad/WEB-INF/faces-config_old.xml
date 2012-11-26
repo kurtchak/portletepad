@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!DOCTYPE faces-config PUBLIC
+   "-//Sun Microsystems, Inc.//DTD JavaServer Faces Config 1.0//EN"
+   "http://java.sun.com/dtd/web-facesconfig_1_0.dtd">
+<faces-config>
+
+	<application>
+		<view-handler>org.jboss.portletbridge.application.PortletViewHandler</view-handler>
+		<state-manager>org.jboss.portletbridge.application.PortletStateManager</state-manager>
+		<!--<locale-config> -->
+		<!--<default-locale>en_US</default-locale> -->
+		<!--<supported-locale>en_US</supported-locale> -->
+		<!--</locale-config> -->
+	</application>
+
+<!-- 	<application> -->
+<!-- 		<view-handler>com.sun.facelets.FaceletViewHandler</view-handler> -->
+<!-- 	</application> -->
+	<!-- MANAGED BEANS -->
+	<managed-bean>
+		<managed-bean-name>apiBean</managed-bean-name>
+		<managed-bean-class>org.webepad.beans.APIBean</managed-bean-class>
+		<managed-bean-scope>session</managed-bean-scope>
+		<managed-property>
+			<property-name>padBean</property-name>
+			<property-class>org.webepad.beans.PadBean</property-class>
+			<value>#{padBean}</value>
+		</managed-property>
+		<managed-property>
+			<property-name>userBean</property-name>
+			<property-class>org.webepad.beans.UserBean</property-class>
+			<value>#{userBean}</value>
+		</managed-property>
+		<managed-property>
+			<property-name>sessionBean</property-name>
+			<property-class>org.webepad.beans.SessionBean</property-class>
+			<value>#{sessionBean}</value>
+		</managed-property>
+	</managed-bean>
+	<managed-bean>
+		<managed-bean-name>padBean</managed-bean-name>
+		<managed-bean-class>org.webepad.beans.PadBean</managed-bean-class>
+		<managed-bean-scope>session</managed-bean-scope>
+	</managed-bean>
+	<managed-bean>
+		<managed-bean-name>sessionBean</managed-bean-name>
+		<managed-bean-class>org.webepad.beans.SessionBean</managed-bean-class>
+		<managed-bean-scope>session</managed-bean-scope>
+		<managed-property>
+			<property-name>padBean</property-name>
+			<property-class>org.webepad.beans.PadBean</property-class>
+			<value>#{padBean}</value>
+		</managed-property>
+		<managed-property>
+			<property-name>userBean</property-name>
+			<property-class>org.webepad.beans.UserBean</property-class>
+			<value>#{userBean}</value>
+		</managed-property>
+	</managed-bean>
+	<managed-bean>
+		<managed-bean-name>userBean</managed-bean-name>
+		<managed-bean-class>org.webepad.beans.UserBean</managed-bean-class>
+		<managed-bean-scope>session</managed-bean-scope>
+	</managed-bean>
+	<!-- NAVIGATION RULES -->
+	<navigation-rule>
+		<display-name>pages/pads.xhtml</display-name>
+		<from-view-id>/pages/pads.xhtml</from-view-id>
+		<navigation-case>
+			<from-outcome>openPad</from-outcome>
+			<to-view-id>/pages/pad.xhtml</to-view-id>
+		</navigation-case>
+		<navigation-case>
+			<from-outcome>refresh</from-outcome>
+			<to-view-id>/pages/pads.xhtml</to-view-id>
+		</navigation-case>
+	</navigation-rule>
+	<navigation-rule>
+		<display-name>pages/pad.xhtml</display-name>
+		<from-view-id>/pages/pad.xhtml</from-view-id>
+		<navigation-case>
+			<from-outcome>refresh</from-outcome>
+			<to-view-id>/pages/pad.xhtml</to-view-id>
+		</navigation-case>
+		<navigation-case>
+			<from-outcome>padList</from-outcome>
+			<to-view-id>/pages/pads.xhtml</to-view-id>
+		</navigation-case>
+	</navigation-rule>
+</faces-config>

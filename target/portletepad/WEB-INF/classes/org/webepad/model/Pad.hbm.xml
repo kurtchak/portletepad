@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<!-- Generated May 7, 2012 9:29:11 PM by Hibernate Tools 3.4.0.CR1 -->
+<hibernate-mapping>
+	<class name="org.webepad.model.Pad" table="Pad" lazy="false">
+		<id name="id" type="java.lang.Long">
+			<column name="id" />
+			<generator class="identity" />
+		</id>
+		<property name="name" type="java.lang.String">
+			<column name="name" />
+		</property>
+		<property name="readOnly" type="java.lang.Boolean">
+			<column name="readonly" />
+		</property>
+		<property name="created" type="java.util.Date">
+			<column name="created" />
+		</property>
+		<many-to-one name="creator" class="org.webepad.model.User" fetch="join">
+			<column name="creatorId" />
+		</many-to-one>
+		<bag name="changesets" inverse="false" cascade="delete" table="Changeset" lazy="true" order-by="number asc">
+			<key column="padId" />
+			<one-to-many class="org.webepad.model.Changeset" />
+		</bag>
+		<map name="userSessions" inverse="false" cascade="delete" table="Session" lazy="false" access="field">
+			<key column="padId" />
+			<map-key column="userId" type="java.lang.Long"></map-key>
+			<one-to-many class="org.webepad.model.Session" />
+		</map>
+	</class>
+</hibernate-mapping>

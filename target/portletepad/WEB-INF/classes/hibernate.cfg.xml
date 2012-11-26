@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+                                         "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+<!-- 	<session-factory name="webepad"> -->
+<!-- 		<property name="hibernate.connection.driver_class">com.mysql.jdbc.Driver</property> -->
+<!-- 		<property name="hibernate.connection.password">jonas</property> -->
+<!-- 		<property name="hibernate.connection.url">jdbc:mysql://localhost:3306/portletepad?autoReconnect=true&amp;characterEncoding=UTF-8</property> -->
+<!-- 		<property name="hibernate.connection.username">jonas</property> -->
+<!-- 		<property name="hibernate.dialect">org.hibernate.dialect.MySQL5Dialect</property> -->
+<!-- 		<property name="hibernate.connection.characterEncoding">UTF-8</property> -->
+<!--         <property name="hibernate.connection.useUnicode">true</property> -->
+<!-- 		<property name="show_sql">false</property> -->
+<!-- 		<property name="hbm2ddl.auto">update</property> -->
+
+
+<!-- 	<session-factory name="DefaultDS"> -->
+	<session-factory name="ExampleDS">
+		<property name="hibernate.connection.driver_class">org.hsqldb.jdbcDriver</property>
+		<property name="hibernate.connection.password"></property>
+		<property name="hibernate.connection.url">jdbc:hsqldb:${jboss.server.data.dir}${/}hypersonic${/}localDB</property>
+		<property name="hibernate.connection.username">sa</property>
+		<property name="hibernate.connection.characterEncoding">UTF-8</property>
+        <property name="hibernate.connection.useUnicode">true</property>
+		<property name="show_sql">false</property>
+		<property name="hibernate.dialect">org.hibernate.dialect.HSQLDialect</property>
+		<property name="hbm2ddl.auto">update</property>
+		<!-- Mapping files -->
+		<mapping resource="org/webepad/model/Attribute.hbm.xml" />
+		<mapping resource="org/webepad/model/AttributeItem.hbm.xml" />
+		<mapping resource="org/webepad/model/AttributePool.hbm.xml" />
+		<mapping resource="org/webepad/model/Changeset.hbm.xml" />
+		<mapping resource="org/webepad/model/Pad.hbm.xml" />
+		<mapping resource="org/webepad/model/Session.hbm.xml" />
+		<mapping resource="org/webepad/model/User.hbm.xml" />
+	</session-factory>
+</hibernate-configuration>
