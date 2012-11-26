@@ -30,9 +30,12 @@ JMS
 In order to use JMS, the messaging subsystem must be declared as used within the JBoss AS configuration file standalone.xml or standalone-full.xml with all modules turned on.
 You can use the exact parts from standalone-full.xml with small modification in a security-settings part:
 
-  1.  Security settings
-
       <subsystem xmlns="urn:jboss:domain:messaging:1.1">
+          ...
+      </subsystem>
+
+  1.  Security settings:
+
           <security-settings>
               <security-setting match="#">
                   <permission type="send" roles="PortletepadUser"/>
