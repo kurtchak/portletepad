@@ -1,4 +1,4 @@
-Welcome to PortletEpad
+ja som mamWelcome to PortletEpad
 ======================
 
 This document describes what is PortletEpad and how you can configure and deploy it to a GateIn Portal Portlet Container.
@@ -73,7 +73,7 @@ In order to leverage the functionality of JMS topics, the user with appropriate 
         name = kurtcha
         pass = portletepad
   
-    2. Assign role PortletEpad for this user in the next step.
+    2. Assign role PortletepadUser for this user in the next step.
 
 Build and deploy
 ================
