@@ -1,0 +1,9 @@
+<?xml version="1.0" standalone="yes"?>
+<deployments>
+	<deployment>
+		<instance>
+			<instance-id>PortletEtherpadInstance</instance-id>
+			<portlet-ref>PortletEtherpad</portlet-ref>
+		</instance>
+	</deployment>
+</deployments>

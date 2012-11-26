@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PROCESS model-entity="JSFProcess">
+ <PROCESS-ITEM NAME="rules:#pages#pads.xhtml" PATH="/pages/pads.xhtml"
+  SHAPE="160,256,50,57" model-entity="JSFProcessGroup">
+  <PROCESS-ITEM ID="rules:#pages#pads.xhtml:0" NAME="item"
+   PATH="/pages/pads.xhtml" model-entity="JSFProcessItem">
+   <PROCESS-ITEM-OUTPUT ID="openPad::#pages#pad.xhtml" NAME="output"
+    PATH="/pages/pad.xhtml" SHAPE="209,288,298,288,298,288,359,288"
+    TARGET="rules:#pages#pad.xhtml" TITLE="openPad" model-entity="JSFProcessItemOutput"/>
+   <PROCESS-ITEM-OUTPUT ID="refresh::#pages#pads.xhtml" NAME="output1"
+    PATH="/pages/pads.xhtml" TARGET="rules:#pages#pads.xhtml"
+    TITLE="refresh" model-entity="JSFProcessItemOutput"/>
+  </PROCESS-ITEM>
+ </PROCESS-ITEM>
+ <PROCESS-ITEM NAME="rules:#pages#pad.xhtml" PATH="/pages/pad.xhtml"
+  SHAPE="360,280,50,57" model-entity="JSFProcessGroup">
+  <PROCESS-ITEM ID="rules:#pages#pad.xhtml:0" NAME="item"
+   PATH="/pages/pad.xhtml" model-entity="JSFProcessItem">
+   <PROCESS-ITEM-OUTPUT ID="padList::#pages#pads.xhtml" NAME="output1"
+    PATH="/pages/pads.xhtml"
+    SHAPE="409,312,464,312,464,376,96,376,96,264,159,264"
+    TARGET="rules:#pages#pads.xhtml" TITLE="padList" model-entity="JSFProcessItemOutput"/>
+   <PROCESS-ITEM-OUTPUT ID="refresh::#pages#pad.xhtml" NAME="output"
+    PATH="/pages/pad.xhtml" TARGET="rules:#pages#pad.xhtml"
+    TITLE="refresh" model-entity="JSFProcessItemOutput"/>
+  </PROCESS-ITEM>
+ </PROCESS-ITEM>
+</PROCESS>

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<!-- Generated May 7, 2012 9:29:11 PM by Hibernate Tools 3.4.0.CR1 -->
+<hibernate-mapping>
+    <class name="org.webepad.model.AttributeItem" table="AttributeItem" lazy="false">
+		<id name="id" type="java.lang.Long">
+			<column name="id" />
+			<generator class="identity" />
+		</id>
+        <property name="number" type="java.lang.Integer">
+            <column name="number" />
+        </property>
+        <many-to-one name="attribute" class="org.webepad.model.Attribute" fetch="join">
+            <column name="attrId" />
+        </many-to-one>
+        <property name="value" type="java.lang.String">
+            <column name="value" />
+        </property>
+        <many-to-one name="attributePool" class="org.webepad.model.AttributePool" fetch="join">
+            <column name="attribPoolId" />
+        </many-to-one>
+    </class>
+</hibernate-mapping>
