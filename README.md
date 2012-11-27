@@ -84,7 +84,7 @@ For the sake of demonstration you can also copy our configuration with preset re
               ...
           </socket-binding-group>
 
-  5. Other not mentioned properties should be let unchanged as the referential settings in standalon-full.xml.
+  5. Other not mentioned properties should be let unchanged according to referential settings in standalon-full.xml.
 
 JBoss AS User
 -------------
