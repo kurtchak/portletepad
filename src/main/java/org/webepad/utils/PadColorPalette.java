@@ -4,11 +4,11 @@ import java.awt.Color;
 import java.util.HashSet;
 import java.util.Set;
 
-public class PadColorUtils {
-	private static PadColorUtils instance;
+public class PadColorPalette {
+	private static PadColorPalette instance;
 	private static Set<String> colors;
 	
-	private PadColorUtils() {
+	private PadColorPalette() {
 		colors = new HashSet<String>();
 		colors.add("#66CCFF");
 		colors.add("#FF0000");
@@ -19,9 +19,9 @@ public class PadColorUtils {
 		colors.add("#C0C0C0");
 	}
 	
-	public static PadColorUtils getInstance() {
+	public static PadColorPalette getInstance() {
 		if (instance == null) {
-			instance = new PadColorUtils();
+			instance = new PadColorPalette();
 		}
 		return instance;
 	}
