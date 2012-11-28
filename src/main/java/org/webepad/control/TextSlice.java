@@ -6,7 +6,6 @@ import org.webepad.exceptions.RangeOutOfDimensionsException;
 import org.webepad.model.Changeset;
 import org.webepad.model.Session;
 import org.webepad.model.User;
-import org.webepad.utils.ExceptionHandler;
 
 public class TextSlice {
 	private Logger log = LoggerFactory.getLogger(TextSlice.class);
@@ -17,7 +16,7 @@ public class TextSlice {
 	private static int lastSpanId = 0;
 
 	private int spanId;
-	private int lastActivePos = 0;
+	private int lastActivePos;
 	
 	private String plain;
 	private int plainLen;
@@ -40,6 +39,7 @@ public class TextSlice {
 		} else {
 			spanId = nextSpanId();
 		}
+		this.lastActivePos = 0;
 		buildRepr();
 	}
 
@@ -54,7 +54,8 @@ public class TextSlice {
 			type = TextSlice.SPAN;
 			spanId = nextSpanId();
 			setPlain(charbank);
-			lastActivePos = plainLen;
+//			lastActivePos = plainLen;
+			this.lastActivePos = 0;
 		} else {
 			type = TextSlice.BR;
 			setPlain("\n");
@@ -65,6 +66,7 @@ public class TextSlice {
 	public TextSlice(int spanId) {
 		type = TextSlice.SPAN;
 		this.spanId = spanId;
+		this.lastActivePos = 0;
 	}
 
 	public String getHtml() {

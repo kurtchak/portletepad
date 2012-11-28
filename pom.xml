@@ -35,7 +35,6 @@
 		<org.jboss.bom.gatein-bom.version>1.0.0.Alpha01</org.jboss.bom.gatein-bom.version>
 		<jboss.as.plugin.version>7.1.1.Final</jboss.as.plugin.version>
 		<portletbridge.version>3.1.0.Final</portletbridge.version>
-		
 
 		<!-- maven-compiler-plugin -->
 		<maven.compiler.target>1.6</maven.compiler.target>
@@ -141,30 +140,24 @@
 			<version>1.8.0.10</version>
 			<scope>compile</scope>
 		</dependency>
-		<!-- <dependency> -->
-		<!-- <groupId>javax.validation</groupId> -->
-		<!-- <artifactId>validation-api</artifactId> -->
-		<!-- <scope>compile</scope> -->
-		<!-- <version>1.0.0.GA</version> -->
-		<!-- </dependency> -->
 		<dependency>
 			<groupId>javax.persistence</groupId>
 			<artifactId>persistence-api</artifactId>
 			<version>1.0</version>
 			<scope>compile</scope>
 		</dependency>
-		<dependency>
-			<groupId>javax.ejb</groupId>
-			<artifactId>ejb-api</artifactId>
-			<version>3.0</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jboss</groupId>
-			<artifactId>jboss-ejb-client</artifactId>
-			<version>1.0.11.Final</version>
-			<scope>compile</scope>
-		</dependency>
+<!-- 		<dependency> -->
+<!-- 			<groupId>javax.ejb</groupId> -->
+<!-- 			<artifactId>ejb-api</artifactId> -->
+<!-- 			<version>3.0</version> -->
+<!-- 			<scope>provided</scope> -->
+<!-- 		</dependency> -->
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.jboss</groupId> -->
+<!-- 			<artifactId>jboss-ejb-client</artifactId> -->
+<!-- 			<version>1.0.11.Final</version> -->
+<!-- 			<scope>compile</scope> -->
+<!-- 		</dependency> -->
 		<dependency>
 			<groupId>org.jboss</groupId>
 			<artifactId>jboss-remote-naming</artifactId>
@@ -243,10 +236,10 @@
 			<artifactId>spring-web</artifactId>
 			<version>3.1.2.RELEASE</version>
 		</dependency>
-		<dependency>
-			<groupId>org.jboss.spec.javax.servlet</groupId>
-			<artifactId>jboss-servlet-api_3.0_spec</artifactId>
-		</dependency>
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.jboss.spec.javax.servlet</groupId> -->
+<!-- 			<artifactId>jboss-servlet-api_3.0_spec</artifactId> -->
+<!-- 		</dependency> -->
 	</dependencies>
 
 	<build>

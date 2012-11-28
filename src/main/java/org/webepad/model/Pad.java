@@ -11,7 +11,7 @@ import org.webepad.dao.PadDAO;
 import org.webepad.dao.hibernate.HibernateDAOFactory;
 import org.webepad.exceptions.NotFoundException;
 import org.webepad.utils.DateUtils;
-import org.webepad.utils.PadColorUtils;
+import org.webepad.utils.PadColorPalette;
 
 /**
  * The persistent class for the Pad database table.
@@ -20,20 +20,21 @@ import org.webepad.utils.PadColorUtils;
 public class Pad extends NamedTemporalEntity {
 	private static final long serialVersionUID = -8430657959366144619L;
 
-	private PadDAO padDAO = HibernateDAOFactory.getInstance().getPadDAO();
-	
+	private PadDAO padDAO;
 	private List<Changeset> changesets;
 	private Map<Long,Session> userSessions;
 	private Map<String,Boolean> usedColors;
-	private PadColorUtils colorUtils;
-	private Boolean readOnly = false;
+	private PadColorPalette colorUtils;
+	private Boolean readOnly;
 	
 	public Pad() {
+		padDAO = HibernateDAOFactory.getInstance().getPadDAO();
 		log = LoggerFactory.getLogger(Pad.class);
-		colorUtils = PadColorUtils.getInstance();
+		colorUtils = PadColorPalette.getInstance();
 		usedColors = new HashMap<String, Boolean>();
 		userSessions = new HashMap<Long, Session>();
 		changesets = new ArrayList<Changeset>();
+		readOnly = false;
 		
 		for (String color : colorUtils.getColors()) {
 			usedColors.put(color, false);

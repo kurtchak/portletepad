@@ -14,46 +14,27 @@ import org.webepad.dao.hibernate.HibernateDAOFactory;
 import org.webepad.exceptions.MalformedMessage;
 import org.webepad.exceptions.NoSuchPadException;
 import org.webepad.exceptions.NoSuchUserException;
-import org.webepad.jms.Listener;
-import org.webepad.jms.Sender;
+import org.webepad.jms.Communicator;
 import org.webepad.model.Changeset;
 import org.webepad.model.Session;
 import org.webepad.utils.ExceptionHandler;
 
 public class CustomPadMessageFactory implements PadMessageFactory {
-
-	private Logger log = LoggerFactory.getLogger(CustomPadMessageFactory.class);
+	private static Logger log = LoggerFactory.getLogger(CustomPadMessageFactory.class);
+	private static ChangesetDAO changesetDAO = HibernateDAOFactory.getInstance().getChangesetDAO();
 
 	private static final Pattern JOIN_LEAVE_MSG_PATTERN = Pattern.compile("^((J|L):([\\d]+):([\\d]+))$");
 	private static final Pattern RESPONSE_MSG_PATTERN = Pattern.compile("^R:([\\d]+):([\\d]+):([\\d]+):([\\d]+)$");
 	public static final Pattern CHANGESET_MSG_PATTERN = Pattern.compile("^C:([WD]):([\\d]+);_(\\d+):(\\d+)_\\[(\\d*),(\\d*)\\]$");
 	private static final Pattern USERCOLOR_MSG_PATTERN = Pattern.compile("^UC:([\\d]+):([\\d]+):(#[a-zA-Z0-9]{6})$");
 
-	private Listener listener;
-	private Sender sender;
-
-//	private static String INITIAL_CONTEXT_FACTORY = "org.jnp.interfaces.NamingContextFactory";
-	private static String INITIAL_CONTEXT_FACTORY = "org.jboss.naming.remote.client.InitialContextFactory";
-//	private static String URL_PKG_PREFIXES = "org.jboss.naming";
-	private static String URL_PKG_PREFIXES = "org.jboss.ejb.client.naming";
-//	private static String TOPIC_NAME = "java:/topic/padTopic";
-	private static String TOPIC_NAME = "jms/topic/padTopic";
-//	private static String TOPIC_URL = "127.0.0.1:9999";
-	private static String TOPIC_URL = "remote://"
-			+ System.getProperty("jboss.bind.address") + ":" + 4447
-			+ System.getProperty("jboss.socket.binding.port-offset");
-	//	private static String TOPIC_URL = "remote://localhost:4447";
-	private static String JBOSS_USER = "kurtcha";
-	private static String JBOSS_PASS = "portletepad";
-	
+	private Communicator communicator;
 	public Session session;
 	private SessionBean sessionBean;
 
-	private ChangesetDAO changesetDAO = HibernateDAOFactory.getInstance().getChangesetDAO();
-	
 	public void publishMessage(String msg) {
 		try {
-			sender.send(msg);
+			communicator.sendMessage(msg);
 		} catch (JMSException e) {
 			ExceptionHandler.handle(e);
 		} catch (NamingException e) {
@@ -82,7 +63,6 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 					sessionBean.processRemotePresence(action, padId, userId);
 				}
 			} else if (mr.find()) {
-				String action = "R";
 				Long fromPadId = Long.decode(mr.group(1));
 				Long fromUserId = Long.decode(mr.group(2));
 				Long toPadId = Long.decode(mr.group(3));
@@ -90,7 +70,7 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 				// receiving only response event addressed to myself
 				if (toPadId.equals(session.getPad().getId()) && toUserId.equals(session.getUser().getId())) {
 					log.info("\nPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId());
-					sessionBean.processRemotePresence(action, fromPadId, fromUserId);
+					sessionBean.processRemotePresence(SessionBean.JOIN_RESPONSE, fromPadId, fromUserId);
 				}
 			} else if (mc.find()) {
 				Long cId = Long.decode(mc.group(2));
@@ -104,14 +84,13 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 					sessionBean.processRemoteChangeset(c, spanId, spanPos, leftId, rightId);
 				}
 			} else if (mu.find()) {
-				String action = "UC";
 				Long userId = Long.decode(mu.group(1));
 				Long padId = Long.decode(mu.group(2));
 				String prevColor = mu.group(3);
 				Session session = sessionBean.findSession(padId, userId);
 				if (padId.equals(session.getPad().getId()) && !userId.equals(session.getUser().getId())) {
 					log.info("\nPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId());
-					sessionBean.processRemoteUserChange(action, session, prevColor);
+					sessionBean.processRemoteUserChange(SessionBean.USERCOLOR, session, prevColor);
 				}
 			} else {
 				throw new MalformedMessage(msg);
@@ -131,8 +110,7 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 	 */
 	public void closeConnection() {
 		try {
-			listener.disconnect();
-			sender.disconnect();
+			communicator.disconnect();
 		} catch (Exception e) {
 			ExceptionHandler.handle(e, "Error terminating listener JMS objects: " + e, true);
 		}
@@ -144,15 +122,16 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 	 * @param sessionBean
 	 */
 	public void initConection(SessionBean sessionBean) {
-		try {
+//		try {
 			this.sessionBean = sessionBean;
 			this.session = sessionBean.getSession();
-			this.listener = new Listener(INITIAL_CONTEXT_FACTORY, URL_PKG_PREFIXES, TOPIC_URL, TOPIC_NAME, JBOSS_USER, JBOSS_PASS, this); // reference on 'this' makes two-way asociation for communication between factory and listener
-			this.sender = new Sender(INITIAL_CONTEXT_FACTORY, URL_PKG_PREFIXES, TOPIC_URL, TOPIC_NAME, JBOSS_USER, JBOSS_PASS);
-		} catch (JMSException e) {
-			ExceptionHandler.handle(e);
-		} catch (NamingException e) {
-			ExceptionHandler.handle(e);
-		}
+			log.info("PadMessageFactory<<" + this.toString() + ">> sessionBean="+ sessionBean.hashCode() + ":session="+session+":"+session.getId());
+			this.communicator = new Communicator(this); // reference on 'this' makes two-way association for communication between factory and listener
+//			this.sender = new Sender(INITIAL_CONTEXT_FACTORY, URL_PKG_PREFIXES, TOPIC_URL, TOPIC_NAME, TOPIC_USER, TOPIC_PASS);
+//		} catch (JMSException e) {
+//			ExceptionHandler.handle(e);
+//		} catch (NamingException e) {
+//			ExceptionHandler.handle(e);
+//		}
 	}
 }

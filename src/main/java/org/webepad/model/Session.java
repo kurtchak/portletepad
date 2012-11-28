@@ -24,19 +24,17 @@ import org.webepad.utils.ExceptionHandler;
  */
 public class Session extends TemporalEntity {
 	private static final long serialVersionUID = -1299346837237381381L;
+	private static Logger log = LoggerFactory.getLogger(Session.class);
 
-	private Logger log = LoggerFactory.getLogger(Session.class);
-
-	private SessionDAO sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
-	
+	private PadMessageFactory messageFactory;
+	private SessionDAO sessionDAO;
 	private String colorCode;
 	private Color color;
-	private boolean colored;
+	private Boolean colored;
 	private Date opened;
 	private Date lastSeen;
 	private Pad pad;
 	private PadAssembler padAssembler;
-	private PadMessageFactory messageFactory = new CustomPadMessageFactory();
 
 	/////////////////////////////////////////
 	// CONSTRUCTORS
@@ -44,17 +42,18 @@ public class Session extends TemporalEntity {
 	}
 	
 	public Session(User user, Pad pad) {
-		this.setUser(user);
+		setUser(user);
 		this.pad = pad;
-		this.colorCode = pad.notUsedColor();
+		colorCode = pad.notUsedColor();
 		setCreated(DateUtils.now());
-		this.lastSeen = getCreated();
+		lastSeen = getCreated();
 	}
 	
 	/**
 	 * Opens the session with initialization of pad constructed from changesets
 	 */
 	public void open() {
+		sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
 		buildPadContent();
 		setOpened(DateUtils.now());
 	}
@@ -76,6 +75,7 @@ public class Session extends TemporalEntity {
 	 * @param sessionBean
 	 */
 	public void startListener(SessionBean sessionBean) {
+		messageFactory = new CustomPadMessageFactory();
 		messageFactory.initConection(sessionBean);
 		messageFactory.publishMessage(joinMessage());
 	}
@@ -179,7 +179,7 @@ public class Session extends TemporalEntity {
 			pad.appendChangeset(changeset);
 			PadContent padContent = padAssembler.applyLocalChangeset(changeset);
 			TextSlice touchedTs = padContent.getTouchedTs();
-			int spanId = 0, leftId = 0, rightId = 0, spanPos = 0, offset = 0;
+			int spanId = 0, leftId = 0, rightId = 0, spanPos = 0;
 			if (touchedTs != null) {
 				spanId = touchedTs.getSpanId();
 				TextSlice left = padContent.getPrevTextSlice(touchedTs);

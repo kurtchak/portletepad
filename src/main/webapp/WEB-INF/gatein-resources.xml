@@ -1,35 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gatein-resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.gatein.org/xml/ns/gatein_resources_1_0 http://www.gatein.org/xml/ns/gatein_resources_1_0"
-        xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_0">
+	xsi:schemaLocation="http://www.gatein.org/xml/ns/gatein_resources_1_0 http://www.gatein.org/xml/ns/gatein_resources_1_0"
+	xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_0">
 
-        <javascript>
-                <param>
-                        <js-module>jQueryMin</js-module>
-                        <js-path>/js/etherpad/jquery.min.js</js-path>
-                        <js-priority>1</js-priority>
-                </param>
-                <param>
-                        <js-module>jQueryUI</js-module>
-                        <js-path>/js/etherpad/jquery-ui.js</js-path>
-                        <js-priority>2</js-priority>
-                </param>
-                <param>
-                        <js-module>EasySync2</js-module>
-                        <js-path>/js/etherpad/easysync2.js</js-path>
-                        <js-priority>3</js-priority>
-                </param>
-                <param>
-                        <js-module>MyJS</js-module>
-                        <js-path>/js/myjs/my.js</js-path>
-                        <js-priority>4</js-priority>
-                </param>
-        </javascript>
-
-        <!-- <portlet-skin> -->
-        <!-- <application-name>PortletEtherpad</application-name> -->
-        <!-- <portlet-name>PortletEtherpad</portlet-name> -->
-        <!-- <skin-name>MySkin</skin-name> -->
-        <!-- <css-path>/css/my.css</css-path> -->
-        <!-- </portlet-skin> -->
+	<javascript>
+		<param>
+			<js-module>jQueryMin</js-module>
+			<js-path>/js/etherpad/jquery.min.js</js-path>
+			<js-priority>1</js-priority>
+		</param>
+		<param>
+			<js-module>jQueryUI</js-module>
+			<js-path>/js/etherpad/jquery-ui.js</js-path>
+			<js-priority>2</js-priority>
+		</param>
+		<param>
+			<js-module>EasySync2</js-module>
+			<js-path>/js/etherpad/easysync2.js</js-path>
+			<js-priority>3</js-priority>
+		</param>
+		<param>
+			<js-module>MyJS</js-module>
+			<js-path>/js/myjs/my.js</js-path>
+			<js-priority>4</js-priority>
+		</param>
+	</javascript>
 </gatein-resources>

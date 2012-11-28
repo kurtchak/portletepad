@@ -41,9 +41,9 @@ public class PadAssembler {
 		} else if (c.getAction() == Changeset.DELETE) {
 			return processDeleteChange(c);
 		} else if (c.getAction() == Changeset.ATTR_CHANGE) {
-			log.info("CHANGE");
+			log.debug("CHANGE");
 		} else if (c.getAction() == Changeset.NOCHANGE) {
-			log.info("NO CHANGE");
+			log.debug("NO CHANGE");
 		}
 		return null;
 	}
@@ -85,11 +85,11 @@ public class PadAssembler {
 
 	private boolean needNewSlice(TextSliceTuple<TextSlice, Integer> tsTuple, Changeset c) {
 		if (tsTuple == null) {
-			log.info("NEEDNEWSLICE ? YES");
+			log.debug("NEEDNEWSLICE ? YES");
 			return true;
 		} else {
 			TextSlice ts = tsTuple.getTextSlice();
-			log.info("NEEDNEWSLICE ? " + ((ts == null || ts.isNewLine() || c.hasNewLine() || !c.hasSameSessionAs(ts)) ? "YES" : "NO"));
+			log.debug("NEEDNEWSLICE ? " + ((ts == null || ts.isNewLine() || c.hasNewLine() || !c.hasSameSessionAs(ts)) ? "YES" : "NO"));
 			return ts == null || ts.isNewLine() || c.hasNewLine() || !c.hasSameSessionAs(ts);
 		}
 	}
@@ -118,7 +118,7 @@ public class PadAssembler {
 	// -> changeset sa sice aplikuje spravne, ale v pripade noveho TextSlice sa vytvori
 	// so spanId+1, kedze lastSpanId je staticky atribut volany rovnako vsetkymi zucastnenymi
 	public void applyRemoteChangeset(Changeset ch) {
-		log.info("APPLYING REMOTE CHANGESET: " + ch + ", " + ch != null ? ch.getRule() : "");
+		log.debug("APPLYING REMOTE CHANGESET: " + ch + ", " + ch != null ? ch.getRule() : "");
 		try {
 			apply(ch);
 		} catch (Exception e) {
@@ -154,12 +154,12 @@ public class PadAssembler {
 	}
 
 	public void applyRemoteChangeset(Changeset c, int spanId, int spanPos, int leftId, int rightId) throws Exception {
-		log.info("=> APPLY REMOTE CHANGESET");
+		log.debug("=> APPLY REMOTE CHANGESET");
 		TextSlice ts = padContent.findTextSlice(spanId);
-			if (c.getAction() == Changeset.WRITE) { log.info("OPERATION WRITE");
-				if (ts != null) { log.info("FOUND:"+ts.getHtml());
-					if (ts.getPlainLen() >= spanPos) { log.info("SPANPOS <= PLAINLEN");
-						if (c.getCharbank() == "") { log.info("NEW LINE CROSSING");
+			if (c.getAction() == Changeset.WRITE) { log.debug("OPERATION WRITE");
+				if (ts != null) { log.debug("FOUND:"+ts.getHtml());
+					if (ts.getPlainLen() >= spanPos) { log.debug("SPANPOS <= PLAINLEN");
+						if (c.getCharbank() == "") { log.debug("NEW LINE CROSSING");
 							TextSlice a = ts;
 							TextSlice b = new TextSlice(rightId);
 							b.setSession(ts.getSession());
@@ -168,7 +168,7 @@ public class PadAssembler {
 							TextSlice brTs = new TextSlice(session, TextSlice.BR);
 							padContent.insertTextSlice(brTs, padContent.indexOf(a)+1);
 							padContent.insertTextSlice(b, padContent.indexOf(brTs)+1);
-						} else { log.info("SAME SESSION");
+						} else { log.debug("SAME SESSION");
 							ts.setPlain(ts.getPlain().substring(0,spanPos)+c.getCharbank()+ts.getPlain().substring(spanPos));
 						}
 					} else {
@@ -176,7 +176,7 @@ public class PadAssembler {
 					}
 				} else {
 					TextSlice leftTs = padContent.findTextSlice(leftId);
-					if (leftTs != null) { log.info("FOUND LEFT SIBL:"+leftTs.getHtml());
+					if (leftTs != null) { log.debug("FOUND LEFT SIBL:"+leftTs.getHtml());
 						TextSlice newTs;
 						if (c.getCharbank() != "") {
 							newTs = new TextSlice(spanId);
@@ -195,7 +195,7 @@ public class PadAssembler {
 						padContent.insertTextSlice(newTs, padContent.indexOf(leftTs)+1);
 					} else {
 						TextSlice rightTs = padContent.findTextSlice(rightId);
-						if (rightTs != null) { log.info("FOUND RIGHT SIBL:"+rightTs.getHtml());
+						if (rightTs != null) { log.debug("FOUND RIGHT SIBL:"+rightTs.getHtml());
 							TextSlice newTs;
 							if (c.getCharbank() != "") {
 								newTs = new TextSlice(spanId);
@@ -223,7 +223,7 @@ public class PadAssembler {
 						}
 					}
 				}
-			} else if (c.getAction() == Changeset.DELETE) { log.info("OPERATION DELETE");
+			} else if (c.getAction() == Changeset.DELETE) { log.debug("OPERATION DELETE");
 				if (spanId == 0) {
 					TextSlice leftTs = leftId == 0 ? null : padContent.findTextSlice(leftId);
 					TextSlice rightTs = rightId == 0 ? null : padContent.findTextSlice(rightId);
@@ -247,7 +247,7 @@ public class PadAssembler {
 						padContent.removeSlice(ts);
 					}
 				}
-			} else if (c.getAction() == Changeset.ATTR_CHANGE) { log.info("OPERATION ATTR_CHANGE");
-			} else { log.info("UNKNOWN OPERATION"); }
+			} else if (c.getAction() == Changeset.ATTR_CHANGE) { log.debug("OPERATION ATTR_CHANGE");
+			} else { log.debug("UNKNOWN OPERATION"); }
 	}
 }

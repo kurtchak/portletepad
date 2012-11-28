@@ -91,6 +91,18 @@
     <param-value>0</param-value>
   </context-param>
   <context-param>
+    <param-name>jboss.jms.padtopic.name</param-name>
+    <param-value>jms/topic/padTopic</param-value>
+  </context-param>
+  <context-param>
+    <param-name>jboss.jms.padtopic.user</param-name>
+    <param-value>kurtcha</param-value>
+  </context-param>
+  <context-param>
+    <param-name>jboss.jms.padtopic.password</param-name>
+    <param-value>portletepad</param-value>
+  </context-param>
+  <context-param>
     <param-name>org.atmosphere.useBlocking</param-name>
     <param-value>true</param-value>
   </context-param>

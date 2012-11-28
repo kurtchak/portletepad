@@ -29,14 +29,14 @@ import org.webepad.utils.ExceptionHandler;
 @SessionScoped
 public class SessionBean {
 
-	private static final String JOIN = "J";
-	private static final String JOIN_RESPONSE = "R";
-	private static final String LEAVE = "L";
-	private static final String CHANGESET = "C";
-	private static final String USERCOLOR = "UC";
+	public static final String JOIN = "J";
+	public static final String JOIN_RESPONSE = "R";
+	public static final String LEAVE = "L";
+	public static final String CHANGESET = "C";
+	public static final String USERCOLOR = "UC";
 
-	private Logger log = LoggerFactory.getLogger(SessionBean.class);
-	private SessionDAO sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
+	private static Logger log = LoggerFactory.getLogger(SessionBean.class);
+	private static SessionDAO sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
 
 	private List<String> receivedChangesetHashCodes = new ArrayList<String>();
 	
@@ -151,7 +151,7 @@ public class SessionBean {
 	public void processRemoteUserChange(String action, Session session, String prevColor) throws MessageException {
 		if (USERCOLOR.equals(action)) {
 			activeSessions.get(activeSessions.indexOf(this.session)).setColorCode(this.session.getColorCode());
-			processToView("UC:"+prevColor+"to"+this.session.getColorCode());
+			processToView(USERCOLOR+":"+prevColor+"to"+this.session.getColorCode());
 		}
 	}
 
@@ -181,10 +181,8 @@ public class SessionBean {
 		StringBuilder sb = new StringBuilder();
 		// IDENTIFICATION OF SENDER
 		sb.append("@[p"+session.getPad().getId()+"u"+session.getUser().getId()+"]");
-		int operation = "W".equals(c.getAction()) ? Changeset.WRITE : "D".equals(c.getAction()) ? Changeset.DELETE : Changeset.ATTR_CHANGE;
-		
-		sb.append("C").append(":");
-		sb.append(operation).append(":");
+		sb.append(CHANGESET).append(":");
+		sb.append(c.getAction()).append(":");
 		sb.append(spanId).append(":");
 		sb.append(spanPos).append(":");
 		sb.append(c.getCharbank() == null ? "" : c.getCharbank()).append(":");
@@ -241,7 +239,7 @@ public class SessionBean {
 		log.info("SUBMITTED CHANGESET: " + changeset);
 		Changeset c = new Changeset();
 		c.setRule(changeset.substring(0, changeset.indexOf('$')));
-		if (c.getAction() == Changeset.NOCHANGE) {
+		if (Changeset.NOCHANGE.equals(c.getAction())) {
 			return;
 		} else {
 			c.setCharbank(changeset.substring(changeset.indexOf('$') + 1));

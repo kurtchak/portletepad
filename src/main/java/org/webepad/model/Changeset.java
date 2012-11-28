@@ -26,10 +26,10 @@ public class Changeset extends TemporalEntity {
 	private static Pattern RULE_LEN_DIFF_PATTERN = Pattern.compile(RULE_LEN_DIFF_REGEXP);
 
 	// action flags
-	public static int WRITE = 0;
-	public static int DELETE = 1;
-	public static int ATTR_CHANGE = 2;
-	public static int NOCHANGE = 3;
+	public static String WRITE = "W";
+	public static String DELETE = "D";
+	public static String ATTR_CHANGE = "A";
+	public static String NOCHANGE = "X";
 
 	// persisted
 	private String rule;
@@ -39,7 +39,7 @@ public class Changeset extends TemporalEntity {
 	private AttributePool attributePool;
 
 	// not persisted
-	private int action;
+	private String action;
 	private int offset;
 	private Integer oldLength;
 	private Session session;
@@ -177,11 +177,11 @@ public class Changeset extends TemporalEntity {
 		return toString(true);
 	}
 	
-	public void setAction(int action) {
+	public void setAction(String action) {
 		this.action = action;
 	}
 	
-	public int getAction() {
+	public String getAction() {
 		return action;
 	}
 

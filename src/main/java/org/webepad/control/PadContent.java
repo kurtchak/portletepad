@@ -37,7 +37,7 @@ public class PadContent {
 	 * @param ts
 	 */
 	public PadContent removeSlice(TextSlice ts) {
-		log.info("removeSlice "+ts.getSpanId()+" ["+ts.getPlain()+"]");
+		log.debug("removeSlice "+ts.getSpanId()+" ["+ts.getPlain()+"]");
 		int index = contentList.indexOf(ts); // AFTER REMOVAL OF TS INDEX WILL BE POINTING ON NEXT SLICE
 		contentList.remove(ts);
 		if (index > 1 && index < contentList.size()) { // IF NOT THE FIRST IN LIST NOR THE END, TRY TO MERGE WITH PREVIOUS SLICE
@@ -126,7 +126,7 @@ public class PadContent {
 //	}
 
 	private void setLastTouchedTs(TextSlice ts, int pos) {
-		log.info("setLastTouchedTs("+(touchedTs != null ? touchedTs.getHtml() : null) +","+pos+")");
+		log.debug("setLastTouchedTs("+(touchedTs != null ? touchedTs.getHtml() : null) +","+pos+")");
 		ts.setLastActivePos(pos);
 		setTouchedTs(ts);
 	}
@@ -207,7 +207,7 @@ public class PadContent {
 	}
 
 	public void setTouchedTs(TextSlice touchedTs) {
-		log.info("setTouchedTs("+touchedTs.getHtml()+")");
+		log.debug("setTouchedTs("+touchedTs.getHtml()+")");
 		this.touchedTs = touchedTs;
 	}
 
@@ -220,11 +220,11 @@ public class PadContent {
 	}
 
 	public TextSlice findTextSlice(int spanId) {
-		log.info("findTextSlice("+spanId+")");
+		log.debug("findTextSlice("+spanId+")");
 		if (!contentList.isEmpty()) {
 			for (TextSlice ts : contentList) {
 				if (ts.getSpanId() == spanId) {
-					log.info("found:("+ts.getHtml()+")");
+					log.debug("found:("+ts.getHtml()+")");
 					return ts;
 				}
 			}
@@ -233,17 +233,17 @@ public class PadContent {
 	}
 
 	public int indexOf(TextSlice ts) {
-		log.info("indexOf("+ts.getHtml()+")");
+		log.debug("indexOf("+ts.getHtml()+")");
 		return contentList.indexOf(ts);
 	}
 
 	public void insertTextSlice(TextSlice ts, int i) {
-		log.info("insertTextSlice("+ts.getHtml()+","+i+")");
+		log.debug("insertTextSlice("+ts.getHtml()+","+i+")");
 		contentList.add(i, ts);
 	}
 
 	public TextSlice findTextSliceByOffset(Integer offset) {
-		log.info("findTextSliceByOffset("+offset+")");
+		log.debug("findTextSliceByOffset("+offset+")");
 		for (TextSlice ts : contentList) {
 			if (ts.getPlainLen() > offset) {
 				ts.setLastActivePos(ts.getPlainLen() - offset);
