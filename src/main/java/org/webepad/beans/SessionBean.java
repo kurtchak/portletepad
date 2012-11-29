@@ -150,8 +150,8 @@ public class SessionBean {
 	
 	public void processRemoteUserChange(String action, Session session, String prevColor) throws MessageException {
 		if (USERCOLOR.equals(action)) {
-			activeSessions.get(activeSessions.indexOf(this.session)).setColorCode(this.session.getColorCode());
-			processToView(USERCOLOR+":"+prevColor+"to"+this.session.getColorCode());
+			activeSessions.get(activeSessions.indexOf(session)).setColorCode(session.getColorCode());
+			processToView(USERCOLOR+":"+prevColor+"to"+session.getColorCode());
 		}
 	}
 

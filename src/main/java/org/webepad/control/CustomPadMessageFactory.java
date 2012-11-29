@@ -21,16 +21,16 @@ import org.webepad.utils.ExceptionHandler;
 
 public class CustomPadMessageFactory implements PadMessageFactory {
 	private static Logger log = LoggerFactory.getLogger(CustomPadMessageFactory.class);
-	private static ChangesetDAO changesetDAO = HibernateDAOFactory.getInstance().getChangesetDAO();
+	private ChangesetDAO changesetDAO = HibernateDAOFactory.getInstance().getChangesetDAO();
 
 	private static final Pattern JOIN_LEAVE_MSG_PATTERN = Pattern.compile("^((J|L):([\\d]+):([\\d]+))$");
 	private static final Pattern RESPONSE_MSG_PATTERN = Pattern.compile("^R:([\\d]+):([\\d]+):([\\d]+):([\\d]+)$");
-	public static final Pattern CHANGESET_MSG_PATTERN = Pattern.compile("^C:([WD]):([\\d]+);_(\\d+):(\\d+)_\\[(\\d*),(\\d*)\\]$");
+	private static final Pattern CHANGESET_MSG_PATTERN = Pattern.compile("^C:([WD]):([\\d]+);_(\\d+):(\\d+)_\\[(\\d*),(\\d*)\\]$");
 	private static final Pattern USERCOLOR_MSG_PATTERN = Pattern.compile("^UC:([\\d]+):([\\d]+):(#[a-zA-Z0-9]{6})$");
 
-	private Communicator communicator;
-	public Session session;
 	private SessionBean sessionBean;
+	private Session session;
+	private Communicator communicator;
 
 	public void publishMessage(String msg) {
 		try {
@@ -87,10 +87,10 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 				Long userId = Long.decode(mu.group(1));
 				Long padId = Long.decode(mu.group(2));
 				String prevColor = mu.group(3);
-				Session session = sessionBean.findSession(padId, userId);
+				Session remoteSession = sessionBean.findSession(padId, userId);
 				if (padId.equals(session.getPad().getId()) && !userId.equals(session.getUser().getId())) {
 					log.info("\nPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId());
-					sessionBean.processRemoteUserChange(SessionBean.USERCOLOR, session, prevColor);
+					sessionBean.processRemoteUserChange(SessionBean.USERCOLOR, remoteSession, prevColor);
 				}
 			} else {
 				throw new MalformedMessage(msg);
@@ -122,16 +122,8 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 	 * @param sessionBean
 	 */
 	public void initConection(SessionBean sessionBean) {
-//		try {
-			this.sessionBean = sessionBean;
-			this.session = sessionBean.getSession();
-			log.info("PadMessageFactory<<" + this.toString() + ">> sessionBean="+ sessionBean.hashCode() + ":session="+session+":"+session.getId());
-			this.communicator = new Communicator(this); // reference on 'this' makes two-way association for communication between factory and listener
-//			this.sender = new Sender(INITIAL_CONTEXT_FACTORY, URL_PKG_PREFIXES, TOPIC_URL, TOPIC_NAME, TOPIC_USER, TOPIC_PASS);
-//		} catch (JMSException e) {
-//			ExceptionHandler.handle(e);
-//		} catch (NamingException e) {
-//			ExceptionHandler.handle(e);
-//		}
+		this.sessionBean = sessionBean;
+		this.session = sessionBean.getSession();
+		this.communicator = new Communicator(this); // reference on 'this' makes two-way association for communication between factory and listener
 	}
 }

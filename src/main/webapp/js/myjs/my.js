@@ -44,9 +44,9 @@ function processMessage(message) {
 }
 
 function adjustColor2(fromColor, toColor) {
-	console.log(fromColor + " to "+ toColor);
-	$('#editor').find('span[class="cl'+fromColor.substring(1)+'"]').toggleClass("cl"+fromColor.substring(1)).toggleClass("cl"+toColor.substring(1));
-	$('.cl'+fromColor.substring(1)).toggleClass("cl"+prevColor.substring(1)).toggleClass("cl"+toColor.substring(1));
+	console.log(">>"+fromColor + " to "+ toColor);
+//	$('#editor').find('span[class="cl'+fromColor.substring(1)+'"]').toggleClass("cl"+fromColor.substring(1)).toggleClass("cl"+toColor.substring(1));
+	$('.cl'+fromColor.substring(1)).toggleClass("cl"+fromColor.substring(1)).toggleClass("cl"+toColor.substring(1));
 }
 
 function prepareEditorContent() {
