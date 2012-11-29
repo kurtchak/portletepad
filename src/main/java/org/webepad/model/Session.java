@@ -39,9 +39,11 @@ public class Session extends TemporalEntity {
 	/////////////////////////////////////////
 	// CONSTRUCTORS
 	public Session() {
+		sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
 	}
 	
 	public Session(User user, Pad pad) {
+		sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
 		setUser(user);
 		this.pad = pad;
 		colorCode = pad.notUsedColor();
@@ -53,7 +55,6 @@ public class Session extends TemporalEntity {
 	 * Opens the session with initialization of pad constructed from changesets
 	 */
 	public void open() {
-		sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
 		buildPadContent();
 		setOpened(DateUtils.now());
 	}
