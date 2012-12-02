@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webepad.dao.PadDAO;
 import org.webepad.dao.hibernate.HibernateDAOFactory;
@@ -19,23 +20,16 @@ import org.webepad.utils.PadColorPalette;
  */
 public class Pad extends NamedTemporalEntity {
 	private static final long serialVersionUID = -8430657959366144619L;
-
-	private PadDAO padDAO;
-	private List<Changeset> changesets;
-	private Map<Long,Session> userSessions;
-	private Map<String,Boolean> usedColors;
-	private PadColorPalette colorUtils;
-	private Boolean readOnly;
+	private Logger log = LoggerFactory.getLogger(Pad.class);
+	private PadDAO padDAO = HibernateDAOFactory.getInstance().getPadDAO();
+	
+	private List<Changeset> changesets = new ArrayList<Changeset>();
+	private Map<Long,Session> userSessions = new HashMap<Long, Session>();
+	private Map<String,Boolean> usedColors = new HashMap<String, Boolean>();
+	private PadColorPalette colorUtils = PadColorPalette.getInstance();
+	private Boolean readOnly = false;
 	
 	public Pad() {
-		padDAO = HibernateDAOFactory.getInstance().getPadDAO();
-		log = LoggerFactory.getLogger(Pad.class);
-		colorUtils = PadColorPalette.getInstance();
-		usedColors = new HashMap<String, Boolean>();
-		userSessions = new HashMap<Long, Session>();
-		changesets = new ArrayList<Changeset>();
-		readOnly = false;
-		
 		for (String color : colorUtils.getColors()) {
 			usedColors.put(color, false);
 		}
@@ -82,7 +76,7 @@ public class Pad extends NamedTemporalEntity {
 //
 
 		session.save();
-		userSessions.put(user.getId(),session);
+//		userSessions.put(user.getId(),session);
 		return session;
 	}
 	

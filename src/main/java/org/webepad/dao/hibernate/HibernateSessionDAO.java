@@ -32,9 +32,9 @@ public class HibernateSessionDAO implements SessionDAO {
 	
 	public void insert(org.webepad.model.Session session) {
 		org.hibernate.Session s = getSession();
-		Transaction t = s.beginTransaction();
+		s.getTransaction().begin();
 		s.persist(session);
-		t.commit();
+		s.getTransaction().commit();
 	}
 	
 	public void update(org.webepad.model.Session session) {

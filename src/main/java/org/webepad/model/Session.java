@@ -66,6 +66,8 @@ public class Session extends TemporalEntity {
 	public void close() {
 		setLastSeen(DateUtils.now());
 		update();
+//		log.info("IS USER SESSION ALREADY IN USERSESSIONS ? ");
+//		log.info(this.getCreator().getPadSessions().get(this).toString());
 		messageFactory.publishMessage(leaveMessage());
 		messageFactory.closeConnection();
 	}
@@ -135,13 +137,7 @@ public class Session extends TemporalEntity {
 	 */
 	private String changesetMessage(Changeset c, int spanId, int spanPos, int leftId, int rightId) {
 		StringBuilder sb = new StringBuilder();
-		String action = c.getAction() == Changeset.WRITE ? "W" : (c.getAction() == Changeset.DELETE ? "D" : "X");
-		sb.append("C:").append(action).append(":").append(c.getId()).append(";");
-		if (c.getAttributePool() != null && c.getAttributePool().getAttributeItems() != null) {
-			for (AttributeItem item : c.getAttributePool().getAttributeItems()) {
-				sb.append(item.getNumber()).append(":").append(item.getAttribute()).append("=").append(item.getValue());
-			}
-		}
+		sb.append("C:").append(c.getId()).append(";");
 		sb.append("_").append(spanId).append(":").append(spanPos).append("_");
 		sb.append("[").append(leftId).append(",").append(rightId).append("]");
 		return sb.toString(); // C as Changeset created on Pad

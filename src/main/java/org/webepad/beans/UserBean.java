@@ -75,4 +75,10 @@ public class UserBean {
 		}
 		return user;
 	}
+
+	public void reloadActualUser() {
+		if (user != null) {
+			user = getUser(user.getId());
+		}
+	}
 }

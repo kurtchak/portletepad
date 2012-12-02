@@ -44,6 +44,9 @@ public class Changeset extends TemporalEntity {
 	private Integer oldLength;
 	private Session session;
 
+	// set when received from other user
+	private int spanId = 0;
+	
 	private int lengthDifference;
 
 	public String getRule() {
@@ -253,5 +256,17 @@ public class Changeset extends TemporalEntity {
 	
 	public int getLengthDifference() {
 		return lengthDifference;
+	}
+
+	public boolean hasSpanId() {
+		return spanId > 0;
+	}
+	
+	public int getSpanId() {
+		return spanId;
+	}
+	
+	public void setSpanId(int spanId) {
+		this.spanId= spanId;
 	}
 }

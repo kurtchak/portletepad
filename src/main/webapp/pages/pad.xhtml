@@ -12,7 +12,7 @@
 		$(document).ready(function() { prepareEditorContent() });
 		userId = "#{sessionBean.session.user.id}";
 		padId = "#{sessionBean.session.pad.id}";
-		setReadOnly("#{padBean.pad.readOnly}");
+		setReadOnly("#{sessionBean.session.pad.readOnly}");
 		userColor = "#{sessionBean.session.colorCode}";
 		var actColor = userColor;
 		nextSpanId = "#{sessionBean.nextSliceSpanId}";
@@ -36,30 +36,28 @@
 	<h:panelGroup class="padSitePanel" layout="block">
 		<h:panelGroup rendered="#{userBean.actualUser != null}">
 			<h:form id="pushForm">
-				<a4j:push id="consumer" address="#{pushBean.topicAddress}" onerror="alert(event.rf.data)"
-					ondataavailable="processMessage(event.rf.data); return false;">
-					<a4j:ajax event="dataavailable" render="usersForm,footerFor,pushForm,pollForm" />
+				<a4j:push id="consumer" address="#{pushBean.topicAddress}" onerror="alert(event.rf.data)" ondataavailable="processMessage(event.rf.data)">
 				</a4j:push>
 			</h:form>
 			<h:form id="pollForm">
-				<a4j:poll enaled="#{sessionBean.pollEnabled}" interval="2000" render="usersForm,footerForm,pollForm" />
+				<a4j:poll enabled="#{sessionBean.pollEnabled}" interval="1000" render="usersForm,footerForm,pollForm"/>
 			</h:form>
 
 			<h:form id="padBarLinksForm">
 				<h:panelGroup layout="block" id="padBar">
 					<a4j:commandLink styleClass="buttonLink right" value="leave" action="#{sessionBean.actionLeave}"/>
-					<a4j:commandLink rendered="#{!padBean.pad.readOnly}" styleClass="buttonLink right" value="refresh" action="#{sessionBean.actionRefresh}"/>
+					<a4j:commandLink rendered="#{!sessionBean.session.pad.readOnly}" styleClass="buttonLink right" value="refresh" action="#{sessionBean.actionRefresh}"/>
 				</h:panelGroup>
 			</h:form>
 			<h:form id="firstForm">
 				<h:panelGroup layout="block" class="heading">
-					<a4j:commandLink rendered="#{!padBean.pad.readOnly}" value="Pad: #{padBean.pad.name}" action="#{sessionBean.actionRefresh}" execute="@form"/>
-					<h:outputText rendered="#{padBean.pad.readOnly}" value="Pad: #{padBean.pad.name} (ReadOnly mode)"/>
+					<a4j:commandLink rendered="#{!sessionBean.session.pad.readOnly}" value="Pad: #{sessionBean.session.pad.name}" action="#{sessionBean.actionRefresh}" execute="@form"/>
+					<h:outputText rendered="#{sessionBean.session.pad.readOnly}" value="Pad: #{sessionBean.session.pad.name} (ReadOnly mode)"/>
 				</h:panelGroup>
 			</h:form>
 
 			<h:panelGrid columns="2" class="padInfoTab">
-				<h:form id="userForm" rendered="#{!padBean.pad.readOnly}">
+				<h:form id="userForm" rendered="#{!sessionBean.session.pad.readOnly}">
 					<h:panelGrid id="padDesc" class="padInfo" columns="1"
 						onmouseout="#{rich:element('chooseColorPanel')}.setAttribute('style','display:none'); resetColor();">
 						<h:panelGrid columns="3" onmouseover="#{rich:element('chooseColorPanel')}.setAttribute('style','display:block');">
@@ -81,7 +79,7 @@
 						</h:panelGrid>
 					</h:panelGrid>
 				</h:form>
-				<h:form id="usersForm" rendered="#{!padBean.pad.readOnly}">
+				<h:form id="usersForm" rendered="#{!sessionBean.session.pad.readOnly}">
 					<h:panelGrid id="padUsers" class="padUsers" rendered="#{not empty sessionBean.activeSessions}" columns="1">
 						<h:panelGroup class="topLabel"><h:outputText value="Joined users:" /></h:panelGroup>
 						<h:dataTable columnClasses="color,name,creator,date" id="activePadUsersTable" class="activePadUsersTable"
@@ -100,25 +98,25 @@
 				</h:form>
 			</h:panelGrid>
 
-			<h:form id="changesetNotifierForm" rendered="#{!padBean.pad.readOnly}">
+			<h:form id="changesetNotifierForm" rendered="#{!sessionBean.session.pad.readOnly}">
 				<span id="anchorForChangeAction" />
 				<a4j:commandButton style="display:none" id="resetNotificationButton" value="Process next change"
 					action="#{sessionBean.processNext}" render="changesetNotifierForm" />
 			</h:form>
 			<h:form id="form">
 				<div id="editor" tabindex="1">#{sessionBean.session.padAssembler.viewRepr}</div>
-				<h:inputText rendered="#{!padBean.pad.readOnly}" style="display:none" id="changeset" value="#{sessionBean.changeset}" />
-				<a4j:commandButton rendered="#{!padBean.pad.readOnly}" style="display:none" id="addChangesetButton"
+				<h:inputText rendered="#{!sessionBean.session.pad.readOnly}" style="display:none" id="changeset" value="#{sessionBean.changeset}" />
+				<a4j:commandButton rendered="#{!sessionBean.session.pad.readOnly}" style="display:none" id="addChangesetButton"
 					value="Submit changeset" action="#{sessionBean.addChangeset}"
 					render="footerForm" status="padWorkStatus" />
 			</h:form>
 			<h:form id="footerForm">
 				<h:panelGroup id="padFooterR" class="padFooterR">
 					<a4j:status id="padWorkStatus" startText="Syncing..."
-						stopText="Last modified: #{padBean.pad.shortModified} by #{padBean.pad.lastModifier.name}" />
+						stopText="Last modified: #{sessionBean.session.pad.shortModified} by #{sessionBean.session.pad.lastModifier.name}" />
 				</h:panelGroup>
 				<h:panelGroup class="padFooterL">
-					<h:outputText value="Created: #{padBean.pad.shortCreated} by #{padBean.pad.creator.name}" />
+					<h:outputText value="Created: #{sessionBean.session.pad.shortCreated} by #{sessionBean.session.pad.creator.name}" />
 				</h:panelGroup>
 			</h:form>
 		</h:panelGroup>

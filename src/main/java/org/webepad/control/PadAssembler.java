@@ -117,17 +117,13 @@ public class PadAssembler {
 	// TODO: doplnujuce aplikovanie cudzieho changesetu z DB sposobuje nekonzistencie
 	// -> changeset sa sice aplikuje spravne, ale v pripade noveho TextSlice sa vytvori
 	// so spanId+1, kedze lastSpanId je staticky atribut volany rovnako vsetkymi zucastnenymi
-	public void applyRemoteChangeset(Changeset ch) {
-		log.debug("APPLYING REMOTE CHANGESET: " + ch + ", " + ch != null ? ch.getRule() : "");
+	public void applyRemoteChangeset(Changeset c) {
+		log.info("APPLYING REMOTE CHANGESET: " + c + ", " + c != null ? c.getRule() : "");
 		try {
-			apply(ch);
+			apply(c);
 		} catch (Exception e) {
 			ExceptionHandler.handle(e);
 		}
-	}
-
-	public int getPlainTextLength() {
-		return padContent.getPlainTextLength();
 	}
 
 	/**
@@ -153,101 +149,7 @@ public class PadAssembler {
 		return padContent.getViewRepr();
 	}
 
-	public void applyRemoteChangeset(Changeset c, int spanId, int spanPos, int leftId, int rightId) throws Exception {
-		log.debug("=> APPLY REMOTE CHANGESET");
-		TextSlice ts = padContent.findTextSlice(spanId);
-			if (c.getAction() == Changeset.WRITE) { log.debug("OPERATION WRITE");
-				if (ts != null) { log.debug("FOUND:"+ts.getHtml());
-					if (ts.getPlainLen() >= spanPos) { log.debug("SPANPOS <= PLAINLEN");
-						if (c.getCharbank() == "") { log.debug("NEW LINE CROSSING");
-							TextSlice a = ts;
-							TextSlice b = new TextSlice(rightId);
-							b.setSession(ts.getSession());
-							b.setPlain(a.getPlain().substring(spanPos));
-							a.removeText(spanPos);
-							TextSlice brTs = new TextSlice(session, TextSlice.BR);
-							padContent.insertTextSlice(brTs, padContent.indexOf(a)+1);
-							padContent.insertTextSlice(b, padContent.indexOf(brTs)+1);
-						} else { log.debug("SAME SESSION");
-							ts.setPlain(ts.getPlain().substring(0,spanPos)+c.getCharbank()+ts.getPlain().substring(spanPos));
-						}
-					} else {
-						throw new Exception("Given SpanPos("+spanPos+") exceeds length("+ts.getPlainLen()+")  of targeted TextSlice");
-					}
-				} else {
-					TextSlice leftTs = padContent.findTextSlice(leftId);
-					if (leftTs != null) { log.debug("FOUND LEFT SIBL:"+leftTs.getHtml());
-						TextSlice newTs;
-						if (c.getCharbank() != "") {
-							newTs = new TextSlice(spanId);
-							newTs.setSession(session);
-							newTs.setPlain(c.getCharbank());
-						} else {
-							newTs = new TextSlice(session, TextSlice.BR);
-						}
-						if (spanPos > 0 && spanPos < leftTs.getPlainLen()) {
-							TextSlice rTs = new TextSlice(rightId);
-							rTs.setSession(leftTs.getSession());
-							rTs.setPlain(leftTs.getPlain().substring(spanPos));
-							leftTs.removeText(spanPos);
-							padContent.insertTextSlice(rTs, padContent.indexOf(leftTs)+1);
-						}
-						padContent.insertTextSlice(newTs, padContent.indexOf(leftTs)+1);
-					} else {
-						TextSlice rightTs = padContent.findTextSlice(rightId);
-						if (rightTs != null) { log.debug("FOUND RIGHT SIBL:"+rightTs.getHtml());
-							TextSlice newTs;
-							if (c.getCharbank() != "") {
-								newTs = new TextSlice(spanId);
-								newTs.setSession(session);
-								newTs.setPlain(c.getCharbank());
-							} else {
-								newTs = new TextSlice(session, TextSlice.BR);
-							}
-							padContent.insertTextSlice(newTs, padContent.indexOf(rightTs));
-						} else if (c.getOffset() >= 0) {
-							TextSlice offTs = padContent.findTextSliceByOffset(c.getOffset());
-							if (offTs != null && offTs.getLastActivePos() == offTs.getPlainLen()) {
-								TextSlice newTs;
-								if (c.getCharbank() == "") {
-									newTs = new TextSlice(TextSlice.BR);
-								} else {
-									newTs = new TextSlice(session, c.getCharbank());
-								}
-								padContent.insertTextSlice(newTs, padContent.indexOf(offTs)+1);
-							} else {
-								throw new Exception("The offset("+c.getOffset()+") exceeds length of text("+getPlainTextLength()+") or lastActivePos is wrong set.");
-							}
-						} else {
-							throw new Exception("There was no TextSlice received.");
-						}
-					}
-				}
-			} else if (c.getAction() == Changeset.DELETE) { log.debug("OPERATION DELETE");
-				if (spanId == 0) {
-					TextSlice leftTs = leftId == 0 ? null : padContent.findTextSlice(leftId);
-					TextSlice rightTs = rightId == 0 ? null : padContent.findTextSlice(rightId);
-					if (leftTs != null) {
-						ts = padContent.getNextTextSlice(leftTs);
-					} else {
-						if (rightTs != null) {
-							ts = padContent.getPrevTextSlice(rightTs);
-						} else {
-							ts = padContent.findTextSliceByOffset(c.getOffset());
-						}
-					}
-					if (ts != null) {
-						padContent.removeSlice(ts);
-					} else {
-						throw new Exception("Acording to given info wasn't found the slice.");
-					}
-				} else {
-					ts.removeText(spanPos, spanPos+1);
-					if (ts.getPlainLen() == 0) {
-						padContent.removeSlice(ts);
-					}
-				}
-			} else if (c.getAction() == Changeset.ATTR_CHANGE) { log.debug("OPERATION ATTR_CHANGE");
-			} else { log.debug("UNKNOWN OPERATION"); }
+	public int getPlainTextLength() {
+		return padContent.getPlainTextLength();
 	}
 }

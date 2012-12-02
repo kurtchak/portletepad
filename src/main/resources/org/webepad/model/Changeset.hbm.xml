@@ -3,7 +3,7 @@
 "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
 <!-- Generated May 7, 2012 9:29:11 PM by Hibernate Tools 3.4.0.CR1 -->
 <hibernate-mapping>
-    <class name="org.webepad.model.Changeset" table="Changeset" lazy="true">
+    <class name="org.webepad.model.Changeset" table="Changeset" lazy="false">
 		<id name="id" type="java.lang.Long">
 			<column name="id" />
 			<generator class="identity" />
@@ -20,7 +20,7 @@
         <property name="created" type="java.util.Date">
             <column name="created" />
         </property>
-        <many-to-one name="pad" class="org.webepad.model.Pad" fetch="join">
+        <many-to-one name="pad" class="org.webepad.model.Pad" cascade="delete" fetch="select">
             <column name="padId" />
         </many-to-one>
         <many-to-one name="author" class="org.webepad.model.User" fetch="join">

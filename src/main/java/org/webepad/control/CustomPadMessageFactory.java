@@ -25,7 +25,7 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 
 	private static final Pattern JOIN_LEAVE_MSG_PATTERN = Pattern.compile("^((J|L):([\\d]+):([\\d]+))$");
 	private static final Pattern RESPONSE_MSG_PATTERN = Pattern.compile("^R:([\\d]+):([\\d]+):([\\d]+):([\\d]+)$");
-	private static final Pattern CHANGESET_MSG_PATTERN = Pattern.compile("^C:([WD]):([\\d]+);_(\\d+):(\\d+)_\\[(\\d*),(\\d*)\\]$");
+	private static final Pattern CHANGESET_MSG_PATTERN = Pattern.compile("^C:([\\d]+);_(\\d+):(\\d+)_\\[(\\d*),(\\d*)\\]$");
 	private static final Pattern USERCOLOR_MSG_PATTERN = Pattern.compile("^UC:([\\d]+):([\\d]+):(#[a-zA-Z0-9]{6})$");
 
 	private SessionBean sessionBean;
@@ -73,11 +73,11 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 					sessionBean.processRemotePresence(SessionBean.JOIN_RESPONSE, fromPadId, fromUserId);
 				}
 			} else if (mc.find()) {
-				Long cId = Long.decode(mc.group(2));
-				Integer spanId = Integer.decode(mc.group(3));
-				Integer spanPos = Integer.decode(mc.group(4));
-				Integer leftId = Integer.decode(mc.group(5));
-				Integer rightId = Integer.decode(mc.group(6));
+				Long cId = Long.decode(mc.group(1));
+				Integer spanId = Integer.decode(mc.group(2));
+				Integer spanPos = Integer.decode(mc.group(3));
+				Integer leftId = Integer.decode(mc.group(4));
+				Integer rightId = Integer.decode(mc.group(5));
 				Changeset c = changesetDAO.getChangeset(cId);
 				if (c.getPad().getId().equals(session.getPad().getId()) && !c.getUser().getId().equals(session.getUser().getId())) {
 					log.info("\nPROCESS MESSAGE:"+msg+"\n\t-> RECEIVED BY:pad:"+session.getPad().getId()+",user:"+session.getUser().getId()+",spanId:"+spanId+",spanPos:"+spanPos+",leftId:"+leftId+",rightId:"+rightId);
@@ -95,6 +95,7 @@ public class CustomPadMessageFactory implements PadMessageFactory {
 			} else {
 				throw new MalformedMessage(msg);
 			}
+//			sessionBean.enablePoll();
 		} catch (NoSuchUserException e) {
 			ExceptionHandler.handle(e);
 		} catch (NoSuchPadException e) {

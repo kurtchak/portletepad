@@ -51,6 +51,8 @@ public class SessionBean {
 	private String number;
 	private String changeset;
 	
+	private boolean pollEnabled = true;
+	
 	private LinkedList<String> remoteChangesetsQueue = new LinkedList<String>();
 	private List<Session> activeSessions = new ArrayList<Session>();
 	
@@ -96,16 +98,20 @@ public class SessionBean {
 	//////////////////////////////////////////////
 	// ACTIVE SESSIONS
 	public List<Session> getActiveSessions() {
+//		log.info("ActiveSessions:"+activeSessions.size());
 		return activeSessions;
 	}
 
 	public void addActiveSession(Session session) {
+		log.info("ADD ACTIVE SESSIONS: ActiveSessions:"+activeSessions.size());
 		if (!activeSessions.contains(session)) {
 			activeSessions.add(session);
+			log.info("ADD:"+activeSessions.get(activeSessions.size()-1).getUser().getName());
 		}
 	}
 
 	public void removeActiveSession(Session session) {
+		log.info("REMOVE ACTIVE SESSIONS: ActiveSessions:"+activeSessions.size());
 		activeSessions.remove(session);
 	}
 
@@ -136,7 +142,7 @@ public class SessionBean {
 		if (!receivedChangesetHashCodes.contains(String.valueOf(c.hashCode()))) {
 			receivedChangesetHashCodes.add(String.valueOf(c.hashCode()));
 			processRemoteChangeOnServer(c, spanId, spanPos, leftId, rightId);
-			refreshPadContent();
+//			refreshPadContent();
 			String remoteChangeString = generateRemoteChangeString(c, spanId, spanPos, leftId, rightId);
 			if (remoteChangesetsQueue.isEmpty()) {
 				processToView(remoteChangeString);
@@ -157,7 +163,8 @@ public class SessionBean {
 
 	private void processRemoteChangeOnServer(Changeset c, int spanId, int spanPos, int leftId, int rightId) throws Exception {		
 		PadAssembler padAssembler = this.session.getPadAssembler();
-		padAssembler.applyRemoteChangeset(c, spanId, spanPos, leftId, rightId);
+		c.setSpanId(spanId);
+		padAssembler.applyRemoteChangeset(c);
 	}
 
 	private void publishToQueue(String receivedString) {
@@ -343,5 +350,24 @@ public class SessionBean {
 	public String changeColor(String colorCode) {
 		session.changeUserColor(colorCode);
 		return actionRefresh(); // TODO: ZLE ZLE RIESENIE
+	}
+
+	public boolean isPollEnabled() {
+//		log.info("RETURN: "+pollEnabled);
+		return pollEnabled;
+	}
+
+	public void setPollEnabled(boolean pollEnabled) {
+		this.pollEnabled = pollEnabled;
+	}
+	
+	public void disablePoll() {
+		log.info("DISABLING POLL");
+		pollEnabled = false;
+	}
+
+	public void enablePoll() {
+		log.info("ENABLING POLL");
+		pollEnabled = true;
 	}
 }

@@ -46,6 +46,7 @@ public class APIBean {
 
 	public String deletePad() {
 		padBean.deteleSelectedPad();
+		userBean.reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
 		return "refresh";
 	}
 	
@@ -65,6 +66,7 @@ public class APIBean {
 	public String openPadSession(Pad pad, User user) {
 		Session session = padBean.openSession(pad, user);
 		sessionBean.loadSession(session);
+		userBean.reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
 		if (session != null) {
 			return "openPad";
 		} else {

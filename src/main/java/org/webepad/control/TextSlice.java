@@ -29,6 +29,20 @@ public class TextSlice {
 	private Session session;
 	private String color;
 
+	// FOR UNIT TESTING ONLY
+	public TextSlice(Session session, String text) {
+		this.type = text != null && text.length() > 0 ? SPAN : BR;
+		this.session = session;
+		this.color = session.getColorCode();
+		if (type == BR) {
+			setPlain("\n");
+		} else {
+			setPlain(text);
+			spanId = nextSpanId();
+		}
+		this.lastActivePos = 0;
+		buildRepr();
+	}
 	
 	public TextSlice(Session session, int type) {
 		this.type = type;
@@ -44,16 +58,17 @@ public class TextSlice {
 	}
 
 	public TextSlice(Changeset c) {
-		this(c.getSession(), c.getCharbank());
-	}
-	
-	public TextSlice(Session session, String charbank) {
-		this.session = session;
+		this.session = c.getSession();
 		this.color = session.getColorCode();
-		if (charbank != null && charbank.length() > 0) {
+		if (c.getCharbank().length() > 0) {
 			type = TextSlice.SPAN;
-			spanId = nextSpanId();
-			setPlain(charbank);
+			if (c.hasSpanId()) {
+				spanId = c.getSpanId();
+				lastSpanId = spanId;
+			} else {
+				spanId = nextSpanId();
+			}
+			setPlain(c.getCharbank());
 //			lastActivePos = plainLen;
 			this.lastActivePos = 0;
 		} else {

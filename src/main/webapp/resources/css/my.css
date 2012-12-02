@@ -59,33 +59,37 @@ div#editor:focus {
 	width: 0px;
 }
 
-.padTable {
-	border: 1px solid grey;
+div.padListBody div {
 	padding: 5px;
-	margin-bottom: 10px;
-	margin-left: 10px;
-	margin-right: 10px;
-	width: 95%;
+}
+	
+div.padListBody {
+	padding: 5px;
+	margin: 5px;
 }
 
-.padTable thead {
+.padListBody table {
+	border: 1px solid grey;
+}
+
+.padListBody table thead {
 	font-weight: normal;
 }
 
-.padTable tbody {
+.padListBody table tbody {
 	background-color: #F2F2F2;
 	font-style: italic;
 	font-weight: normal;
 }
 
-.padTable tbody tr {
+.padListBody table tbody tr {
 	border-width: 1px 0 0 0;
 	border-style: solid;
 	border-color: grey;
 	margin: 0px;
 }
 
-.padTable tbody tr td {
+.padListBody table tbody tr td {
 	border: 0px;
 	padding: 10px;
 	margin: 0px;
@@ -95,19 +99,19 @@ div#editor:focus {
 	outline: none;
 }
 
-.padTable tbody tr td a {
+.padListBody table tbody tr td a {
 	margin: 0;
 	padding: 5px;
 }
 
-.padTable tbody tr:hover {
+.padListBody table tbody tr:hover {
 	background: -webkit-linear-gradient(#fff, #ccc);
 	background: -moz-linear-gradient(#fff, #ccc);
 	background: -ms-linear-gradient(#fff, #ccc);
 	background: -o-linear-gradient(#fff, #ccc);
 }
 
-.padTable tbody td.padName a:hover {
+.padListBody table tbody td.padName a:hover {
 	text-decoration: underline;
 }
 
