@@ -20,7 +20,7 @@
         <property name="created" type="java.util.Date">
             <column name="created" />
         </property>
-        <many-to-one name="pad" class="org.webepad.model.Pad" cascade="delete" fetch="select">
+        <many-to-one name="pad" class="org.webepad.model.Pad" fetch="join">
             <column name="padId" />
         </many-to-one>
         <many-to-one name="author" class="org.webepad.model.User" fetch="join">

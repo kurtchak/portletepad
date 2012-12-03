@@ -77,7 +77,7 @@ public class PadContent {
 					return new TextSliceTuple<TextSlice, Integer>(ts, tsOffset);
 				} else {
 					if (length + ts.getPlainLen() == cOffset) {
-						if (c.getAction() == Changeset.WRITE && ts.hasSameTokenWith(c) && ts.isTextSpan()) {
+						if (c.getAction() == Changeset.WRITE && ts.hasSameTokenWith(c) && ts.isTextSpan()) { // if at end of TextSlice and not have the same token, return next TextSlice with position 0
 							return new TextSliceTuple<TextSlice, Integer>(ts, ts.getPlainLen());
 						}
 					}

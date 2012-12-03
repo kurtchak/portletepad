@@ -158,13 +158,14 @@ function writeRemoteChange(changeInfo) {
 	var remoteFgColor = fields[8];
 
 	var elem = getTextSlice(remoteSpanId);
-
+	var remoteChar = remoteCharbank;
 	if (remoteAction == "W") {
-		newText = newText.substring(0, remoteOffset) + remoteCharbank + newText.substring(remoteOffset);
+		remoteChar = remoteCharbank == "" ? "\n" : remoteCharbank;
+		newText = newText.substring(0, remoteOffset) + remoteChar + newText.substring(remoteOffset);
 	} else if (remoteAction == "D") {
 		newText = newText.substring(0, remoteOffset) + newText.substring(remoteOffset+1);
 	}
-	
+	console.log("REMOTE CHAR: "+ remoteChar);
 	if (!isNull(elem)) { console.log('TARGET ELEMENT('+($(elem).length)+'): '+getSpanIdNumber(elem)+":"+$(elem).text()); }
 	else { console.log('TARGET ELEMENT =>> NOT FOUND'); }
 
@@ -214,7 +215,7 @@ function writeRemoteChange(changeInfo) {
 		remoteSpanPos = leftAtom.pos;
 		if (!isNull(left)) { // found neighbour
 			if (remoteSpanPos <= $(left).text().length) {
-				if (remoteSpanPos > 0) {
+				if (remoteSpanPos > 0 && remoteSpanPos < $(left).text().length) {
 					var rightStr = $(left).text().substring(remoteSpanPos);
 					$(left).text($(left).text().substring(0,remoteSpanPos));
 					var right = createNewTextSlice('span', getFgColor(left), remoteRightId, rightStr);
@@ -263,9 +264,13 @@ function writeRemoteChange(changeInfo) {
 	} else if (remoteOffset >= 0) {
 		console.log('WITHOUT SPAN NEIGHBOURS '+ (remoteCharbank == null) + ","+ (remoteCharbank == "") +","+ (remoteCharbank != null));
 		var elem = $('#editor').find(':first');
-		while (textLength(elem) < remoteOffset) {
+		while (textLength(elem) <= remoteOffset) {
+			console.log("without span neighbours: "+ $(elem).text() + ":"+remoteOffset);
 			remoteOffset -= textLength(elem);
 			elem = $(elem).next().prop('id') != 'caret' ? $(elem).next() : $(elem).next().next();
+			if (remoteOffset == 0) {
+				break;
+			}
 		}
 		if (remoteAction == "W") {
 			updateNextSpanId(remoteSpanId);
@@ -299,6 +304,7 @@ function getCurrentTextSlicePart(elem, pos) {
 }
 
 function textSliceExists(spanIdNumber) {
+	console.log("TEXT SLICE '"+spanIdNumber+"' EXISTS ? "+(($("#t_s_"+spanIdNumber).length > 0 ? true : $("#t_s_"+spanIdNumber+"a").length > 0) ? "YES" : "NO"));
 	return $("#t_s_"+spanIdNumber).length > 0 ? true : $("#t_s_"+spanIdNumber+"a").length > 0;
 }
 
@@ -307,6 +313,7 @@ function getTextSlice(spanIdNumber) {
 	var elem = null;
 	if (textSliceExists(spanIdNumber)) {
 		elem = $("#t_s_"+spanIdNumber);
+		console.log("elem1:"+elem);
 		console.log("elem1:"+(isNull(elem) ? "null" : $(elem).text()));
 		if (isNull(elem)) {
 			elem = $("#t_s_"+spanIdNumber+"a,#t_s_"+spanIdNumber+"b");
@@ -641,7 +648,7 @@ function getFgColor(elem) {
 }
 
 function isNull(a) {
-	return a == null || $(a).length == 0;
+	return a == null || $(a).length == 0 || typeof a == 'undefined';
 }
 
 // a must precedes b
@@ -790,7 +797,6 @@ function writeDown(evn) {
 			n = (!isEnter(evn)) ? createNewTextSlice(tag, userColor, getNextSpanId(), c)
 								: createNewLine();
 			// position
-			newText = newText.substring(0, caretPos) + c + newText.substring(caretPos); // ?? insert into
 			console.log("newText: " + newText);
 			$(n).insertBefore(caret);
 			if (caretPos > 1) {
@@ -820,7 +826,7 @@ function writeDown(evn) {
 		}
 		// position
 		newText = newText.substring(0, caretPos) + c + newText.substring(caretPos); // ?? insert into
-		console.log("newText: " + newText);
+		console.log("NEWTEXT: " + newText);
 		generateChangeset(evn);
 	}
 	$(editor).focus();

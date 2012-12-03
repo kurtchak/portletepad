@@ -213,14 +213,16 @@ public class Changeset extends TemporalEntity {
 				offset += Integer.parseInt(m3.group(5), 36);
 			}
 		}
-//		offset -= 1; // korekcia - text zacina prazdnym znakom
 	}
 
 	public int getOffset() {
 		return offset;
 	}
 
-	public Session getSession() {
+	public Session getSession() { // TODO: zmenit asoc Changeset-Pad, Changeset-U -> Changeset-Session
+		if (session == null) {
+			session = HibernateDAOFactory.getInstance().getSessionDAO().findSession(getPad().getId(), getUser().getId());
+		}
 		return session;
 	}
 
@@ -243,6 +245,9 @@ public class Changeset extends TemporalEntity {
 	}
 	
 	public boolean isAtTheEnd() {
+		log.info("isAtEnd ? "+(action == DELETE && offset == getNewLength() || offset == oldLength ? "YES" : "NO")
+				+"| "+rule
+				+"| action:" + action + " ol:" + oldLength + " [" + offset + "] nl:" + getNewLength());
 		if (action == DELETE) {
 			return offset == getNewLength(); // if it is here => 'ab|x'
 		} else {
