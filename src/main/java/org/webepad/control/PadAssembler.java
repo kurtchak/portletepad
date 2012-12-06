@@ -3,28 +3,27 @@ package org.webepad.control;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webepad.model.Changeset;
-import org.webepad.model.Session;
-import org.webepad.utils.ExceptionHandler;
+import org.webepad.model.Pad;
 import org.webepad.utils.TextSliceTuple;
 
 public class PadAssembler {
-	
-	private Session session;
 	private static Logger log = LoggerFactory.getLogger(PadAssembler.class);
 
 	private PadContent padContent;
 	
-	public PadAssembler(Session session) {
-		this.session = session;
-		this.padContent = new PadContent();
+	public PadAssembler() {
 	}
-
-	public void buildViewRepr() throws Exception {
-		padContent = new PadContent();
-		for (Changeset c : session.getPad().getChangesets()) {
-			apply(c);
+	
+	public void parseContent(Pad pad) throws Exception {
+		if (pad != null) {
+			padContent = new PadContent();
+			for (Changeset c : pad.getChangesets()) {
+				apply(c);
+			}
+			padContent.reloadPadContent();
+		} else {
+			throw new Exception("Parsing exception - null object was given as Pad.");
 		}
-		padContent.reloadViewRepr();
 	}
 
 	/**
@@ -114,18 +113,6 @@ public class PadAssembler {
 		return ts1;
 	}
 
-	// TODO: doplnujuce aplikovanie cudzieho changesetu z DB sposobuje nekonzistencie
-	// -> changeset sa sice aplikuje spravne, ale v pripade noveho TextSlice sa vytvori
-	// so spanId+1, kedze lastSpanId je staticky atribut volany rovnako vsetkymi zucastnenymi
-	public void applyRemoteChangeset(Changeset c) {
-		log.info("APPLYING REMOTE CHANGESET: " + c + ", " + c != null ? c.getRule() : "");
-		try {
-			apply(c);
-		} catch (Exception e) {
-			ExceptionHandler.handle(e);
-		}
-	}
-
 	/**
 	 * Processing the local changeset returning the actually touched element and position within it
 	 * @param changeset
@@ -137,19 +124,15 @@ public class PadAssembler {
 	}
 	
 	// GETTERS AND SETTERS
-	public Session getSession() {
-		return session;
-	}
-
-	public void setSession(Session session) {
-		this.session = session;
-	}
-
-	public String getViewRepr() {
+	public String getTextContent() {
 		return padContent.getViewRepr();
 	}
 
 	public int getPlainTextLength() {
 		return padContent.getPlainTextLength();
+	}
+
+	public void refreshTextContent() {
+		padContent.reloadPadContent();
 	}
 }

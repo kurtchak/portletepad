@@ -19,7 +19,9 @@ public class APIBean {
 	private SessionBean sessionBean;
 	@ManagedProperty(value="#{userBean}")
 	private UserBean userBean;
-
+	@ManagedProperty(value="#{pushBean}")
+	private PushBean pushBean;
+	
 	private String padname;
 	private String username;
 	private String password;
@@ -40,12 +42,12 @@ public class APIBean {
 	public String createNewPad() {
 		User user = userBean.getActualUser();
 		Pad pad = padBean.createNewPad(padname, user);
-		padBean.loadPad(pad);
+		pad.setPushBean(pushBean); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
 		return openPadSession(pad, user);
 	}
 
-	public String deletePad() {
-		padBean.deteleSelectedPad();
+	public String deletePad(Pad pad) {
+		padBean.deletePad(pad);
 		userBean.reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
 		return "refresh";
 	}
@@ -56,32 +58,30 @@ public class APIBean {
 		return "refresh";
 	}
 	
-	public String openListedPad() {
-		padBean.loadListedPad();
-		Pad pad = padBean.getPad();
+	public String openPad(Pad pad) {
 		User user = userBean.getActualUser();
+		pad.setPushBean(pushBean); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
 		return openPadSession(pad, user);
 	}
 
 	public String openPadSession(Pad pad, User user) {
 		Session session = padBean.openSession(pad, user);
-		sessionBean.loadSession(session);
-		userBean.reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
 		if (session != null) {
+			sessionBean.loadSession(session);
+			userBean.reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
 			return "openPad";
-		} else {
-			return "error";
 		}
+		return "error";
 	}
 
 	public String openSession(Session session) {
-		padBean.openSession(session);
-		sessionBean.loadSession(session);
 		if (session != null) {
+			session.getPad().setPushBean(pushBean); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
+			session = padBean.openSession(session);
+			sessionBean.loadSession(session);
 			return "openPad";
-		} else {
-			return "error";
 		}
+		return "error";
 	}
 	
 	public PadBean getPadBean() {
@@ -106,6 +106,14 @@ public class APIBean {
 
 	public void setSessionBean(SessionBean sessionBean) {
 		this.sessionBean = sessionBean;
+	}
+
+	public PushBean getPushBean() {
+		return pushBean;
+	}
+
+	public void setPushBean(PushBean pushBean) {
+		this.pushBean = pushBean;
 	}
 
 	public String getPadname() {

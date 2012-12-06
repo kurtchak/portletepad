@@ -56,5 +56,11 @@ public class HibernateSessionDAO implements SessionDAO {
 		List<org.webepad.model.Session> sessions = getSession().createQuery("from Session as s where s.active = :active").setBoolean("active", true).list();
 		return sessions;
 	}
+	@Override
+	public List<org.webepad.model.Session> readUserSessions(Long padId) {
+		@SuppressWarnings("unchecked")
+		List<org.webepad.model.Session> sessions = getSession().createQuery("from Session as s where s.pad.id = :padId").setLong("padId", padId).list();
+		return sessions;
+	}
 
 }

@@ -245,9 +245,9 @@ public class Changeset extends TemporalEntity {
 	}
 	
 	public boolean isAtTheEnd() {
-		log.info("isAtEnd ? "+(action == DELETE && offset == getNewLength() || offset == oldLength ? "YES" : "NO")
-				+"| "+rule
-				+"| action:" + action + " ol:" + oldLength + " [" + offset + "] nl:" + getNewLength());
+//		log.info("isAtEnd ? "+(action == DELETE && offset == getNewLength() || offset == oldLength ? "YES" : "NO")
+//				+"| "+rule
+//				+"| action:" + action + " ol:" + oldLength + " [" + offset + "] nl:" + getNewLength());
 		if (action == DELETE) {
 			return offset == getNewLength(); // if it is here => 'ab|x'
 		} else {

@@ -34,7 +34,7 @@
 		<!-- JBoss dependency versions -->
 		<org.jboss.bom.gatein-bom.version>1.0.0.Alpha01</org.jboss.bom.gatein-bom.version>
 		<jboss.as.plugin.version>7.1.1.Final</jboss.as.plugin.version>
-		<portletbridge.version>3.1.0.Final</portletbridge.version>
+		<portletbridge.version>3.1.1.Final</portletbridge.version>
 
 		<!-- maven-compiler-plugin -->
 		<maven.compiler.target>1.6</maven.compiler.target>
@@ -101,7 +101,7 @@
 		<dependency>
 			<groupId>javax.portlet</groupId>
 			<artifactId>portlet-api</artifactId>
-			<scope>provided</scope>
+			<scope>compile</scope>
 		</dependency>
 
 		<dependency>

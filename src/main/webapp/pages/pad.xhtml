@@ -34,90 +34,78 @@
 
 <h:body>
 	<h:panelGroup class="padSitePanel" layout="block">
-		<h:panelGroup rendered="#{userBean.actualUser != null}">
-			<h:form id="pushForm">
-				<a4j:push id="consumer" address="#{pushBean.topicAddress}" onerror="alert(event.rf.data)" ondataavailable="processMessage(event.rf.data)">
-				</a4j:push>
-			</h:form>
-			<h:form id="pollForm">
-				<a4j:poll enabled="#{sessionBean.pollEnabled}" interval="1000" render="usersForm,footerForm,pollForm"/>
-			</h:form>
-
-			<h:form id="padBarLinksForm">
+		<h:panelGroup rendered="#{userBean.actualUser == null}" layout="block">
+			<ui:include src="noauth.xhtml" />
+		</h:panelGroup>
+		<h:panelGroup rendered="#{userBean.actualUser != null}" layout="block">
+			<h:form id="mainForm" rendered="#{sessionBean.session.pad != null}">
+				<a4j:push id="consumer" address="#{pushBean.topicAddress}" onerror="alert(event.rf.data)" ondataavailable="processMessage(event.rf.data)"/>
+				<a4j:outputPanel id="pollPanel">
+					<a4j:poll id="pollElement" enabled="#{sessionBean.pollEnabled}" interval="2000" render="usersPanel,footerForm,pollPanel" status="none"/>
+				</a4j:outputPanel>
 				<h:panelGroup layout="block" id="padBar">
 					<a4j:commandLink styleClass="buttonLink right" value="leave" action="#{sessionBean.actionLeave}"/>
-					<a4j:commandLink rendered="#{!sessionBean.session.pad.readOnly}" styleClass="buttonLink right" value="refresh" action="#{sessionBean.actionRefresh}"/>
+					<a4j:commandLink rendered="#{sessionBean.session.pad != null &amp;&amp; !sessionBean.session.pad.readOnly}" styleClass="buttonLink right" value="refresh" action="#{sessionBean.actionRefresh}"/>
 				</h:panelGroup>
-			</h:form>
-			<h:form id="firstForm">
 				<h:panelGroup layout="block" class="heading">
 					<a4j:commandLink rendered="#{!sessionBean.session.pad.readOnly}" value="Pad: #{sessionBean.session.pad.name}" action="#{sessionBean.actionRefresh}" execute="@form"/>
 					<h:outputText rendered="#{sessionBean.session.pad.readOnly}" value="Pad: #{sessionBean.session.pad.name} (ReadOnly mode)"/>
 				</h:panelGroup>
-			</h:form>
-
-			<h:panelGrid columns="2" class="padInfoTab">
-				<h:form id="userForm" rendered="#{!sessionBean.session.pad.readOnly}">
-					<h:panelGrid id="padDesc" class="padInfo" columns="1"
-						onmouseout="#{rich:element('chooseColorPanel')}.setAttribute('style','display:none'); resetColor();">
-						<h:panelGrid columns="3" onmouseover="#{rich:element('chooseColorPanel')}.setAttribute('style','display:block');">
-							<h:outputText class="label" value="User: " />
-							<h:panelGroup>
-								<h:panelGroup layout="block" class="colorSquare #{sessionBean.session.colorClass}" />
-							</h:panelGroup>
-							<h:outputText class="name" value="#{sessionBean.session.user.name} #{padsession.padCreator ? '(creator)' : ''}" />
-						</h:panelGrid>
-						<h:panelGrid id="chooseColorPanel" class="chooseColorPanel" style="display:none;" onmouseover="#{rich:element('chooseColorPanel')}.setAttribute('style','display:block');">
-							<ui:repeat var="color" value="#{sessionBean.freeColors}">
-								<h:commandLink action="#{sessionBean.changeColor(color)}" onmouseover="adjustColor('#{color}');">
-									<h:panelGrid columns="2" class="colorItem">
-										<h:panelGroup layout="block" class="colorSquare" style="background-color:#{color};" />
-										<h:outputText class="colorName" value="#{color}" />
-									</h:panelGrid>
-								</h:commandLink>
-							</ui:repeat>
-						</h:panelGrid>
-					</h:panelGrid>
-				</h:form>
-				<h:form id="usersForm" rendered="#{!sessionBean.session.pad.readOnly}">
-					<h:panelGrid id="padUsers" class="padUsers" rendered="#{not empty sessionBean.activeSessions}" columns="1">
-						<h:panelGroup class="topLabel"><h:outputText value="Joined users:" /></h:panelGroup>
-						<h:dataTable columnClasses="color,name,creator,date" id="activePadUsersTable" class="activePadUsersTable"
-							value="#{sessionBean.activeSessions}" var="padsession">
-							<h:column>
-								<h:panelGroup layout="block" class="colorSquare #{padsession.colorClass}" />
-							</h:column>
-							<h:column>
-								<h:outputText value="#{padsession.user.name}" />
-							</h:column>
-							<h:column>
-								<h:outputText value="#{padsession.padCreator ? '(creator)' : ''}" />
-							</h:column>
-						</h:dataTable>
-					</h:panelGrid>
-				</h:form>
-			</h:panelGrid>
-
-			<h:form id="changesetNotifierForm" rendered="#{!sessionBean.session.pad.readOnly}">
-				<span id="anchorForChangeAction" />
-				<a4j:commandButton style="display:none" id="resetNotificationButton" value="Process next change"
-					action="#{sessionBean.processNext}" render="changesetNotifierForm" />
-			</h:form>
-			<h:form id="form">
-				<div id="editor" tabindex="1">#{sessionBean.session.padAssembler.viewRepr}</div>
-				<h:inputText rendered="#{!sessionBean.session.pad.readOnly}" style="display:none" id="changeset" value="#{sessionBean.changeset}" />
-				<a4j:commandButton rendered="#{!sessionBean.session.pad.readOnly}" style="display:none" id="addChangesetButton"
-					value="Submit changeset" action="#{sessionBean.addChangeset}"
-					render="footerForm" status="padWorkStatus" />
-			</h:form>
-			<h:form id="footerForm">
-				<h:panelGroup id="padFooterR" class="padFooterR">
-					<a4j:status id="padWorkStatus" startText="Syncing..."
-						stopText="Last modified: #{sessionBean.session.pad.shortModified} by #{sessionBean.session.pad.lastModifier.name}" />
+	
+				<h:panelGroup rendered="#{sessionBean.session.pad == null}" layout="block">
+					<h:outputText value="No pad was loaded. Go back to pad list." />
 				</h:panelGroup>
-				<h:panelGroup class="padFooterL">
-					<h:outputText value="Created: #{sessionBean.session.pad.shortCreated} by #{sessionBean.session.pad.creator.name}" />
-				</h:panelGroup>
+				<a4j:outputPanel rendered="#{sessionBean.session.pad != null}">
+					<h:panelGroup id="usersPanel">
+						<h:panelGrid columns="2" class="padInfoTab">
+							<h:panelGrid id="padDesc" class="padInfo" columns="1">
+								<h:panelGrid columns="3">
+									<h:outputText class="label" value="User: " />
+									<h:panelGroup>
+										<h:panelGroup layout="block" class="colorSquare #{sessionBean.session.colorClass}" />
+									</h:panelGroup>
+									<h:outputText class="name" value="#{sessionBean.session.user.name} #{padsession.padCreator ? '(creator)' : ''}" />
+								</h:panelGrid>
+							</h:panelGrid>
+							<h:panelGrid id="padUsers" class="padUsers" rendered="#{not empty sessionBean.activeSessions}" columns="1">
+								<h:panelGroup class="topLabel"><h:outputText value="Joined users:" /></h:panelGroup>
+								<h:dataTable columnClasses="color,name,creator,date" id="activePadUsersTable" class="activePadUsersTable"
+									value="#{sessionBean.activeSessions}" var="padsession">
+									<h:column>
+										<h:panelGroup layout="block" class="colorSquare #{padsession.colorClass}" />
+									</h:column>
+									<h:column>
+										<h:outputText value="#{padsession.user.name}" />
+									</h:column>
+									<h:column>
+										<h:outputText value="#{padsession.padCreator ? '(creator)' : ''}" />
+									</h:column>
+								</h:dataTable>
+							</h:panelGrid>
+						</h:panelGrid>
+					</h:panelGroup>
+					<h:panelGroup id="changesetNotifierForm" rendered="#{!sessionBean.session.pad.readOnly}">
+						<span id="anchorForChangeAction" />
+						<a4j:commandButton style="display:none" id="resetNotificationButton" value="Process next change"
+							action="#{sessionBean.session.processNext}" render="changesetNotifierForm" />
+					</h:panelGroup>
+					<h:panelGroup id="form">
+						<div id="editor" tabindex="1">#{padBean.pad.content}</div>
+						<h:inputText rendered="#{!sessionBean.session.pad.readOnly}" style="display:none" id="changeset" value="#{sessionBean.changeset}" />
+						<a4j:commandButton rendered="#{!sessionBean.session.pad.readOnly}" style="display:none" id="addChangesetButton"
+							value="Submit changeset" action="#{sessionBean.addChangeset}"
+							render="footerForm" status="padWorkStatus" />
+					</h:panelGroup>
+					<h:panelGroup id="footerForm">
+						<h:panelGroup id="padFooterR" class="padFooterR">
+							<a4j:status id="padWorkStatus" startText="Syncing..."
+								stopText="Last modified: #{sessionBean.session.pad.shortModified} by #{sessionBean.session.pad.lastModifier.name}" />
+						</h:panelGroup>
+						<h:panelGroup class="padFooterL">
+							<h:outputText value="Created: #{sessionBean.session.pad.shortCreated} by #{sessionBean.session.pad.creator.name}" />
+						</h:panelGroup>
+					</h:panelGroup>
+				</a4j:outputPanel>
 			</h:form>
 		</h:panelGroup>
 	</h:panelGroup>

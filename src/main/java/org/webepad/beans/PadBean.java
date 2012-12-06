@@ -1,12 +1,17 @@
 package org.webepad.beans;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.SessionScoped;
-import javax.faces.component.html.HtmlDataTable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.webepad.dao.ChangesetDAO;
 import org.webepad.dao.PadDAO;
 import org.webepad.dao.hibernate.HibernateDAOFactory;
 import org.webepad.model.Changeset;
@@ -18,15 +23,17 @@ import org.webepad.utils.DateUtils;
 @ManagedBean(name = "padBean")
 @SessionScoped
 public class PadBean {
+	private static Logger log = LoggerFactory.getLogger(PadBean.class);
 	private PadDAO padDAO = HibernateDAOFactory.getInstance().getPadDAO();
+	private ChangesetDAO changesetDAO = HibernateDAOFactory.getInstance().getChangesetDAO();
 
+	private static Map<Long,Pad> activePads = new HashMap<Long, Pad>();
+	
 	private String padname;
 	private String number;
 	private String text;
 	private Pad pad;
 	
-	private HtmlDataTable padListTable;
-
 	@ManagedProperty(value="#{userBean}")
 	public UserBean userBean;
 	
@@ -36,15 +43,11 @@ public class PadBean {
 	//////////////////////////////////////////////
 	// LOADING OF THE MAIN OBJECT FOR THE VIEW
 	public void loadPad(Long id) {
-		this.pad = padDAO.getPad(id);
+		loadPad(padDAO.getPad(id));
 	}
 
 	public void loadPad(Pad pad) {
 		this.pad = pad;
-	}
-
-	public void loadListedPad() {
-		pad = (Pad) padListTable.getRowData();
 	}
 
 	/**
@@ -62,13 +65,6 @@ public class PadBean {
 		return pad;
 	}
 
-	/**
-	 * Removal of selected Pad
-	 */
-	public void deteleSelectedPad() {
-		deletePad((Pad) padListTable.getRowData());
-	}
-
 	public Pad getPad(Long id) {
 		return padDAO.getPad(id);
 	}
@@ -81,6 +77,9 @@ public class PadBean {
 		return padDAO.readChangesets(pad.getId(), pad.getLastRevisionNumber());
 	}
 
+	/**
+	 * Pad CRUD
+	 */
 	public void save(Pad pad) {
 		padDAO.insert(pad);
 	}
@@ -89,28 +88,53 @@ public class PadBean {
 		padDAO.update(pad);
 	}
 
-	public void deletePad(Long id) {
-		padDAO.delete(id);
-	}
-
 	public void deletePad(Pad pad) {
 		padDAO.delete(pad);
 	}
 
-	public Session openSession(Pad pad, User user) {
+	public synchronized Session openSession(Pad pad, User user) {
 		if (pad != null) {
-			setPad(pad);
+			pad = addActivePad(pad);
+			loadPad(pad);
 			return pad.openSession(user);
 		}
 		return null;
 	}
 
-	public Session openSession(Session session) {
+	public synchronized Session openSession(Session session) {
 		if (session != null) {
-			setPad(session.getPad());
+			Pad pad = addActivePad(session.getPad());
+			session.setPad(pad);
+			loadPad(pad);
 			return pad.openSession(session);
 		}
 		return null;
+	}
+
+	public synchronized void closeSession(Session session) {
+		if (session != null) {
+			session.close();
+			Collection<Session> activePadSessions = session.getPad().getActivePadSessions();
+			if (activePadSessions == null || activePadSessions.isEmpty()) {
+				removeActivePad(session.getPad());
+			}
+		}
+	}
+	
+	private synchronized Pad addActivePad(Pad pad) {
+		if (activePads.containsKey(pad.getId())) {
+			pad = activePads.get(pad.getId());
+			log.info("PAD:"+pad.getName()+" ALREADY ADDED TO >> ACTIVE PADS. RETRIEVING MANAGED PAD WITH HASHCODE ["+pad.hashCode()+"]");
+		} else {
+			activePads.put(pad.getId(), pad);
+			log.info("PAD:"+pad.getName()+" ADDED TO >> ACTIVE PADS WITH HASHCODE ["+pad.hashCode()+"]");
+		}
+		return pad;
+	}
+
+	public synchronized void removeActivePad(Pad pad) {
+		activePads.remove(pad.getId());
+		log.info("PAD:"+pad.getName()+" REMOVED FROM << ACTIVE PADS.");
 	}
 
 	public Pad getPad() {
@@ -145,14 +169,6 @@ public class PadBean {
 		this.text = text;
 	}
 
-	public HtmlDataTable getPadListTable() {
-		return padListTable;
-	}
-
-	public void setPadListTable(HtmlDataTable padListTable) {
-		this.padListTable = padListTable;
-	}
-
 	public UserBean getUserBean() {
 		return userBean;
 	}
@@ -172,5 +188,9 @@ public class PadBean {
 		} else {
 			return false;
 		}
+	}
+
+	public Changeset getChangeset(Long id) {
+		return changesetDAO.getChangeset(id);
 	}
 }

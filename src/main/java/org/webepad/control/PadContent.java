@@ -24,7 +24,7 @@ public class PadContent {
 		TextSlice.resetLastSpanId();
 	}
 	
-	public void reloadViewRepr() {
+	public void reloadPadContent() {
 		StringBuilder sb = new StringBuilder();
 		for (TextSlice ts : contentList) {
 			sb.append(ts.getHtml());

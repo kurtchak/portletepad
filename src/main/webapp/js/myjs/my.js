@@ -22,6 +22,7 @@ function processMessage(message) {
 	console.log("Message received: "+message);
 	var changeset = message.match(/^@\[p(\d+)u(\d+)\](C.*)$/);
 	var colorChange = message.match(/^UC:(.*)to(.*)$/);
+	var refresh = message.match(/^REFRESH:(\d+):(\d+):(.*)$/);
 	if (changeset != null) {
 		console.log("changeset: "+changeset);
 		var pId = changeset[1];
@@ -37,10 +38,51 @@ function processMessage(message) {
 		var fromColor = colorChange[1];
 		var toColor = colorChange[2];
 		adjustColor2(fromColor, toColor);
+	} else if (refresh) {
+		console.log("refresh: "+refresh);
+		var uId = refresh[1];
+		var pId = refresh[2];
+		var body = refresh[3];
+		if (uId != userId || pId != padId) {
+			console.log("Not intended...");
+			return;
+		} else {
+			console.log("REFRESH EDITOR CONTENT");
+			buildEditorContent(body);
+		}
 	} else {
 		return;
 	}
 	console.log("Message processed: "+message);
+}
+
+function buildEditorContent(text) {
+	console.log("buildEditorContent");
+	console.log(text);
+	editor = $('#editor');
+	var spanText = "";
+	newText = "";
+	$(editor).text("").css("color","black");
+	while (text) {
+		var fields = text.match(/^(\d)(_(#[0-9a-fA-F]{6})_(\d+)_(\d+):(.*))?(.*)/);
+		if (fields != null) {
+			if (isTextSpanType(fields[1])) {
+				spanText = fields[6].substr(0,fields[5]); // n character from the 6. field
+				text = fields[6].substring(fields[5]); // all left
+				$(editor).append(newTextSpan(fields[3],fields[4],spanText)); // newTextSpan(spanColor, spanNum, spanText)
+				newText += spanText;
+			} else if (isNewLineType(fields[1])) {
+				text = fields[7]; // all left
+				$(editor).append(newNewLineElem());
+				newText += "\n";
+			}
+		} else {
+			return;
+		}
+	}
+	$(editor).append(createCaret());
+	caretPos = newText.length;
+	oldText = newText;
 }
 
 function adjustColor2(fromColor, toColor) {
@@ -539,7 +581,7 @@ function getAllLineEnds() {
 
 // return length of the specified node
 function textLength(e) {
-	return (e == null ? 0 : (isNewLine(e) ? 1
+	return (isNull(e) ? 0 : (isNewLine(e) ? 1
 			: ($(e).prop('tagName') == 'SPAN' ? $(e).text().length : 0)));
 }
 
