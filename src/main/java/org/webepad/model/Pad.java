@@ -1,17 +1,21 @@
 package org.webepad.model;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.webepad.dao.PadDAO;
-import org.webepad.dao.hibernate.HibernateDAOFactory;
+import org.webepad.control.PadAssembler;
+import org.webepad.control.PadContent;
+import org.webepad.control.PushControl;
 import org.webepad.exceptions.NotFoundException;
 import org.webepad.utils.DateUtils;
+import org.webepad.utils.ExceptionHandler;
 import org.webepad.utils.PadColorPalette;
 
 /**
@@ -21,28 +25,19 @@ import org.webepad.utils.PadColorPalette;
 public class Pad extends NamedTemporalEntity {
 	private static final long serialVersionUID = -8430657959366144619L;
 	private Logger log = LoggerFactory.getLogger(Pad.class);
-	private PadDAO padDAO = HibernateDAOFactory.getInstance().getPadDAO();
+	
+	private LinkedList<String> freeColors = PadColorPalette.getColors();
+	private static Map<Long,Map<Long,Session>> activeSessions = new HashMap<Long,Map<Long,Session>>();
 	
 	private List<Changeset> changesets = new ArrayList<Changeset>();
 	private Map<Long,Session> userSessions = new HashMap<Long, Session>();
-	private Map<String,Boolean> usedColors = new HashMap<String, Boolean>();
-	private PadColorPalette colorUtils = PadColorPalette.getInstance();
 	private Boolean readOnly = false;
-	
-	public Pad() {
-		for (String color : colorUtils.getColors()) {
-			usedColors.put(color, false);
-		}
-	}
-	
-	public void updateUsedColors() {
-		for (Session s : userSessions.values()) {
-			if (usedColors.containsKey(s.getColorCode())) {
-				usedColors.put(s.getColorCode(),true);
-			}
-		}
-	}
+	private PadAssembler padAssembler = new PadAssembler();
+	private PushControl pushControl;
 
+	public Pad() {
+	}
+	
 	public List<Changeset> getChangesets() {
 		return changesets;
 	}
@@ -59,24 +54,10 @@ public class Pad extends NamedTemporalEntity {
 		this.userSessions = userSessions;
 	}
 	
-	// Data manipulation methods
-	public void save() {
-		padDAO.insert(this);
-	}
-	
-	public void update() {
-		padDAO.update(this);
-	}
-
-	private Session openNewSession(User user) {
+	private synchronized Session openNewSession(User user) throws Exception {
 		Session session = new Session(user, this);//	public String lockPad() {
-//		padBean.lockSelectedPad();
-//		return "refresh";
-//	}
-//
-
 		session.save();
-//		userSessions.put(user.getId(),session);
+		log.info("OPENED NEW SESSION FOR '"+user.getName()+"':"+session.getId());
 		return session;
 	}
 	
@@ -86,24 +67,27 @@ public class Pad extends NamedTemporalEntity {
 	 * @param user
 	 * @return session
 	 */
-	public Session openSession(User user) {
-		Session session;
-		if (userSessions.containsKey(user.getId())) {
-			session = userSessions.get(user.getId());
-		} else {
-			session = openNewSession(user);
+	public synchronized Session openSession(User user) {
+		Session session = null;
+		try {
+			if (userSessions.containsKey(user.getId())) {
+				session = userSessions.get(user.getId());
+			} else {
+				session = openNewSession(user);
+			}
+			session.open();
+		} catch (Exception e) {
+			ExceptionHandler.handle(e);
 		}
-		session.open();
-		updateUsedColors();
 		return session;
 	}
 	
-	public Session openSession(Session session) {
+	public synchronized Session openSession(Session session) {
 		session.open();
 		return session;
 	}
 	
-	public void closeSession(Session session) throws NotFoundException {
+	public synchronized void closeSession(Session session) throws NotFoundException {
 		if (session == null) {
 			throw new NotFoundException();
 		} else {
@@ -111,38 +95,27 @@ public class Pad extends NamedTemporalEntity {
 		}
 	}
 	
-	// TEMPORARY IMPLEMENTATION
-	public String notUsedColor() {
-		updateUsedColors();
-		for (String color : usedColors.keySet()) {
-			if (!usedColors.get(color)) {
-				usedColors.put(color, true);
-				return color;
-			}
-		}
-		return "#000000";
-	}
-	
 	// append new localy added changeset to the pad
-	public void appendChangeset(Changeset changeset) {
+	public synchronized PadContent appendChangeset(Changeset changeset) throws Exception {
 		changeset.setNumber(nextRevisionNumber());
 		this.changesets.add(changeset);
 //		changeset.printCompact();
 		changeset.save();
+		return padAssembler.applyLocalChangeset(changeset);
 	}
-	
-	// append remotely added changesets to the pad
-	public void appendRemoteChangesets(List<Changeset> changesets) {
-		this.changesets.addAll(changesets);
-	}
-	
-	// append remotely added changeset to the pad
-	public void appendRemoteChangeset(Changeset changeset) {
-		this.changesets.add(changeset);
-		log.info(changeset.toCompactString()); // flag for NOT SAVE PROBABLY NEEDED...
-	}
-	
-	private int nextRevisionNumber() {
+
+//	// append remotely added changesets to the pad
+//	public void appendRemoteChangesets(List<Changeset> changesets) {
+//		this.changesets.addAll(changesets);
+//	}
+//	
+//	// append remotely added changeset to the pad
+//	public void appendRemoteChangeset(Changeset changeset) {
+//		this.changesets.add(changeset);
+//		log.info(changeset.toCompactString()); // flag for NOT SAVE PROBABLY NEEDED...
+//	}
+//	
+	private synchronized int nextRevisionNumber() {
 		Changeset c = getLatestChangeset();
 		if (c != null) {
 			return c.getNumber()+1;
@@ -151,7 +124,7 @@ public class Pad extends NamedTemporalEntity {
 		}
 	}
 
-	private Changeset getLatestChangeset() {
+	private synchronized Changeset getLatestChangeset() {
 		if (!changesets.isEmpty()) {
 			return changesets.get(changesets.size()-1);
 		} else {
@@ -185,7 +158,7 @@ public class Pad extends NamedTemporalEntity {
 		return DateUtils.getShortDate(getModified());
 	}
 	
-	public int getLastRevisionNumber() {
+	public synchronized int getLastRevisionNumber() {
 		if (changesets.size() > 0) {
 			return changesets.get(changesets.size()-1).getNumber();
 		} else {
@@ -197,22 +170,14 @@ public class Pad extends NamedTemporalEntity {
 		setChangesets(changesets);
 	}
 	
-	public void takeColor(String color) {
-		usedColors.put(color, true);
-	}
-	
-	public void freeColor(String color) {
-		usedColors.put(color, false);
+	public synchronized String getFreeColor() throws Exception {
+		if (freeColors.isEmpty()) {
+			throw new Exception("Out of free colors.");
+		}
+		return freeColors.pop();
 	}
 	
 	public List<String> getFreeColors() {
-		updateUsedColors();
-		ArrayList<String> freeColors = new ArrayList<String>();
-		for (String color : usedColors.keySet()) {
-			if (usedColors.get(color).booleanValue() == false) {
-				freeColors.add(color);
-			}
-		}
 		return freeColors;
 	}
 
@@ -224,6 +189,14 @@ public class Pad extends NamedTemporalEntity {
 		return readOnly == null ? false : readOnly;
 	}
 	
+	public PushControl getPushControl() {
+		return pushControl;
+	}
+
+	public void setPushControl(PushControl pushControl) {
+		this.pushControl = pushControl;
+	}
+
 	public Session getSessionByColor(String code) {
 		for (Session s : userSessions.values()) {
 			if (s.getColorCode().equals(code)) {
@@ -231,5 +204,63 @@ public class Pad extends NamedTemporalEntity {
 			}
 		}
 		return null;
+	}
+	
+	public synchronized void addActiveSession(Session session) {
+		Long padId = session.getPad().getId();
+		Long userId = session.getUser().getId();
+		if (!activeSessions.containsKey(padId) || activeSessions.get(padId) == null) {
+			Map<Long,Session> activeUserSessions = new HashMap<Long,Session>();
+			activeSessions.put(padId, activeUserSessions);
+		}
+		activeSessions.get(padId).put(userId, session);
+		log.info("ADDED COLLAB ACTIVE SESSION: "+session.getUser().getName());
+		log.info("ACTIVE PAD'S SESSIONS: "+activeSessions.get(padId).size());
+	}
+	
+	public synchronized void removeActiveSession(Session session) {
+		Long padId = session.getPad().getId();
+		Long userId = session.getUser().getId();
+		if (activeSessions.containsKey(padId) && activeSessions.get(padId) != null) {
+			activeSessions.get(padId).remove(userId);
+		}
+		log.info("REMOVED COLLAB ACTIVE SESSION: "+session.getUser().getName());
+		log.info("ACTIVE PAD'S SESSIONS: "+activeSessions.get(padId).size());
+	}
+	
+	public Collection<Session> getActivePadSessions() {
+		if (activeSessions.containsKey(getId())) {
+			return activeSessions.get(getId()).values();
+		}
+		return null;
+	}
+
+	public Collection<Session> getOtherActivePadSessions(Session session) {
+		Collection<Session> sessions = new ArrayList<Session>();
+		for (Session s : getActivePadSessions()) {
+			if (!s.equals(session)) {
+				sessions.add(s);
+			}
+		}
+		return sessions;
+	}
+	
+	public String getContent() {
+		log.info("getContent [Pad:"+this.hashCode()+"]:");
+		try {
+			padAssembler.parseContent(this);
+		} catch (Exception e) {
+			ExceptionHandler.handle(e);
+		}
+		log.info(padAssembler.getTextContent());
+		return padAssembler.getTextContent();
+	}
+
+	public List<Changeset> getChangesetsFrom(Changeset lastKnownChangeset) {
+		return changesets.subList(changesets.indexOf(lastKnownChangeset),changesets.size()-1);
+	}
+
+	public void reloadPadContent() {
+		padAssembler.refreshTextContent();
 	}
 }

@@ -11,6 +11,8 @@ public interface SessionDAO {
 
 	public List<Session> readActiveSessions();
 
+	public List<Session> readUserSessions(Long padId);
+
 	public Session getSession(Long id);
 
 	public void insert(Session session);

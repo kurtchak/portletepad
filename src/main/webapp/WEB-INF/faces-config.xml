@@ -5,7 +5,6 @@
 	<!-- NAVIGATION RULES -->
 	<application>
 		<view-handler>org.jboss.portletbridge.application.PortletViewHandler</view-handler>
-<!-- 		<state-manager>org.jboss.portletbridge.application.PortletStateManager</state-manager> -->
 	</application>
 	<navigation-rule>
 		<display-name>pages/pads.xhtml</display-name>

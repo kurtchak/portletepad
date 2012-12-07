@@ -33,20 +33,9 @@
   <session-config>
     <session-timeout>30</session-timeout>
   </session-config>
-  <welcome-file-list>
-    <welcome-file>pages/pads.jsf</welcome-file>
-  </welcome-file-list>
   <login-config>
     <auth-method>BASIC</auth-method>
   </login-config>
-  <filter>
-    <filter-name>ResourceRequestFilter</filter-name>
-    <filter-class>org.exoplatform.portal.application.ResourceRequestFilter</filter-class>
-  </filter>
-  <filter-mapping>
-    <filter-name>ResourceRequestFilter</filter-name>
-    <url-pattern>*.css</url-pattern>
-  </filter-mapping>
   <context-param>
     <param-name>javax.portlet.faces.RENDER_POLICY</param-name>
     <param-value>ALWAYS_DELEGATE</param-value>

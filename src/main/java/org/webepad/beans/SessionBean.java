@@ -1,29 +1,23 @@
 package org.webepad.beans;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.annotation.PostConstruct;
 import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.SessionScoped;
 
-import org.richfaces.application.push.MessageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.webepad.control.PadAssembler;
 import org.webepad.control.TextSlice;
 import org.webepad.dao.SessionDAO;
 import org.webepad.dao.hibernate.HibernateDAOFactory;
-import org.webepad.exceptions.NoSuchPadException;
-import org.webepad.exceptions.NoSuchUserException;
-import org.webepad.exceptions.UninitializedObjectException;
 import org.webepad.model.Changeset;
-import org.webepad.model.Pad;
 import org.webepad.model.Session;
 import org.webepad.utils.DateUtils;
-import org.webepad.utils.ExceptionHandler;
 
 @ManagedBean(name = "sessionBean")
 @SessionScoped
@@ -36,25 +30,17 @@ public class SessionBean {
 	public static final String USERCOLOR = "UC";
 
 	private static Logger log = LoggerFactory.getLogger(SessionBean.class);
-	private static SessionDAO sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
+	private SessionDAO sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
 
-	private List<String> receivedChangesetHashCodes = new ArrayList<String>();
-	
 	@ManagedProperty(value="#{padBean}")
 	private PadBean padBean;
 	@ManagedProperty(value="#{userBean}")
 	private UserBean userBean;
-	@ManagedProperty(value="#{pushBean}")
-	private PushBean pushBean;
 
 	private Session session;
 	private String number;
 	private String changeset;
-	
 	private boolean pollEnabled = true;
-	
-	private LinkedList<String> remoteChangesetsQueue = new LinkedList<String>();
-	private List<Session> activeSessions = new ArrayList<Session>();
 	
 	//////////////////////////////////////////////
 	// CONSTRUCTOR
@@ -64,26 +50,12 @@ public class SessionBean {
 	//////////////////////////////////////////////
 	// LOADING OF THE MAIN OBJECT FOR THE VIEW
 	public void loadSession(Session session) {
-		try {
-			this.session = session;
-			if (session != null) {
-				session.startListener(this);
-				pushBean.initializeTopic(session);
-			} else {
-				throw new UninitializedObjectException();
-			}
-		} catch (UninitializedObjectException e) {
-			ExceptionHandler.handle(e);
-		}
-	}
-
-	public void loadSession() {
-		session = new Session();
+		this.session = session;
 	}
 
 	///////////////////////////////////////
 	// RETRIEVAL FROM DB
-	public Session loadSession(Long id) {
+	public Session getSession(Long id) {
 		return sessionDAO.getSession(id);
 	}
 
@@ -97,148 +69,19 @@ public class SessionBean {
 
 	//////////////////////////////////////////////
 	// ACTIVE SESSIONS
-	public List<Session> getActiveSessions() {
-//		log.info("ActiveSessions:"+activeSessions.size());
-		return activeSessions;
-	}
-
-	public void addActiveSession(Session session) {
-		log.info("ADD ACTIVE SESSIONS: ActiveSessions:"+activeSessions.size());
-		if (!activeSessions.contains(session)) {
-			activeSessions.add(session);
-			log.info("ADD:"+activeSessions.get(activeSessions.size()-1).getUser().getName());
-		}
-	}
-
-	public void removeActiveSession(Session session) {
-		log.info("REMOVE ACTIVE SESSIONS: ActiveSessions:"+activeSessions.size());
-		activeSessions.remove(session);
-	}
-
-	// processing the presence info message
-	public void processRemotePresence(String action, Long padId, Long userId) throws NoSuchUserException, NoSuchPadException {
-		if (userBean.getUser(userId) == null) {
-			throw new NoSuchUserException();
-		} else if (padBean.getPad(padId) == null) {
-			throw new NoSuchPadException();
-		} else {
-			Session session = findSession(padId, userId);
-			if (JOIN.equals(action) && !activeSessions.contains(session)) {
-				addActiveSession(session);
-				sendResponse(padId, userId);
-			} else if (JOIN_RESPONSE.equals(action) && !activeSessions.contains(session)) {
-				addActiveSession(session);
-			} else if (LEAVE.equals(action)) {
-				removeActiveSession(session);
-			}
-		}
-	}
-
-	public void processRemoteChangeset(Changeset c, Integer spanId, Integer spanPos, Integer leftId, Integer rightId) throws Exception {
-		Session session = loadSession(c.getSession().getId());
-		if (session == null) {
-			throw new Exception("Received session wasn't found.");
-		}
-		if (!receivedChangesetHashCodes.contains(String.valueOf(c.hashCode()))) {
-			receivedChangesetHashCodes.add(String.valueOf(c.hashCode()));
-			processRemoteChangeOnServer(c, spanId, spanPos, leftId, rightId);
-//			refreshPadContent();
-			String remoteChangeString = generateRemoteChangeString(c, spanId, spanPos, leftId, rightId);
-			if (remoteChangesetsQueue.isEmpty()) {
-				processToView(remoteChangeString);
-			} else {
-				publishToQueue(remoteChangeString);
-			}
-		} else {
-			throw new Exception("Received duplicated changeset info message: "+number.toString());
-		}
+	public Collection<Session> getActiveSessions() {
+		Collection<Session> sessions = session.getPad().getOtherActivePadSessions(session);
+//		log.info("ActiveSessions ("+session.getUser().getName()+"):"+(sessions.size()+1));
+		return sessions;
 	}
 	
-	public void processRemoteUserChange(String action, Session session, String prevColor) throws MessageException {
-		if (USERCOLOR.equals(action)) {
-			activeSessions.get(activeSessions.indexOf(session)).setColorCode(session.getColorCode());
-			processToView(USERCOLOR+":"+prevColor+"to"+session.getColorCode());
-		}
-	}
-
-	private void processRemoteChangeOnServer(Changeset c, int spanId, int spanPos, int leftId, int rightId) throws Exception {		
-		PadAssembler padAssembler = this.session.getPadAssembler();
-		c.setSpanId(spanId);
-		padAssembler.applyRemoteChangeset(c);
-	}
-
-	private void publishToQueue(String receivedString) {
-//		TODO: AGGREGATE SUBSEQUENT CHANGES INTO ONE MESSAGE
-//		if (!remoteChangesetsQueue.isEmpty()) {
-//			String lastReceived = remoteChangesetsQueue.getLast();
-//			Matcher mLast = Session.CHANGESET_MSG_PATTERN.matcher(lastReceived);
-//			Matcher mActual = Session.CHANGESET_MSG_PATTERN.matcher(receivedString);
-//			if (mLast.find() && mActual.find() && mLast.group(group)
-//		}
-		log.info("Adding change to queue: "+receivedString);
-		remoteChangesetsQueue.addLast(receivedString);
-	}
-
-	private void processToView(String info) throws MessageException {
-		log.info("processToView");
-		pushBean.sendMessage(info);
-	}
-	
-	private String generateRemoteChangeString(Changeset c, int spanId, int spanPos, int leftId, int rightId) {
-		StringBuilder sb = new StringBuilder();
-		// IDENTIFICATION OF SENDER
-		sb.append("@[p"+session.getPad().getId()+"u"+session.getUser().getId()+"]");
-		sb.append(CHANGESET).append(":");
-		sb.append(c.getAction()).append(":");
-		sb.append(spanId).append(":");
-		sb.append(spanPos).append(":");
-		sb.append(c.getCharbank() == null ? "" : c.getCharbank()).append(":");
-		sb.append(leftId).append(":");
-		sb.append(rightId).append(":");
-		sb.append(c.getOffset()).append(":");
-		sb.append(c.getSession().getColorCode());
-		return sb.toString();
-	}
-
-	/**
-	 * Sending join response to opposite session
-	 * @param toPadId
-	 * @param toUserId
-	 */
-	private void sendResponse(Long toPadId, Long toUserId) {
-		session.sendReponseMessage(toPadId, toUserId);
-	}
-
 	/**
 	 * Reloads the pad content from DB and builds the editor content
 	 */
 	private void reloadPad() {
-		rebuildPadContent(); // aware of manual removal of data in DB
-//		refreshPadContent(); // aware just of changes made by application
-//		Pad pad = padBean.getPad(session.getPad().getId());
-//		session.setPad(pad);
-//		session.buildPadContent();
+		session.reloadEditorContent();
 	}
 
-	/**
-	 * Refreshes the pad loading the changeset added by remote users
-	 */
-	private void refreshPadContent() {
-		List<Changeset> changesets = padBean.retrieveNewChangesets();
-		session.updatePad(changesets);
-	}
-	
-	/**
-	 * Refreshes the pad loading the changeset added by remote users
-	 */
-	private void rebuildPadContent() {
-		// TODO:FMI: Be aware of caching of DB objects -> lazy="true"
-		Pad pad = padBean.getPad(session.getPad().getId());
-//		pad.updateChangesets(padBean.readChangesets(pad));
-		session.setPad(pad);
-		session.buildPadContent();
-	}
-	
 	/**
 	 * Server side of new changeset addition 
 	 */
@@ -256,32 +99,18 @@ public class SessionBean {
 		}
 	}
 
-	public void processNext() {
-		try {
-			if (!remoteChangesetsQueue.isEmpty()) {
-				log.info("Popping from the queue: "+remoteChangesetsQueue.peek());
-				processToView(remoteChangesetsQueue.pop());
-			} else {
-				log.info("Queue is empty: "+remoteChangesetsQueue.peek());
-			}
-		} catch (MessageException e) {
-			ExceptionHandler.handle(e);
-		}
-	}
-
 	///////////////////////////////////////
 	// ACTIONS
-	public String actionLeave() {
+	public String leave() {
 		if (session != null) {
-			session.close();
-			activeSessions.clear();
+			padBean.closeSession(session);
 		}
-		return "padList";
+		return APIBean.LEAVE_PAD_ACTION;
 	}
 
-	public String actionRefresh() {
+	public String refresh() {
 		reloadPad();
-		return "refresh";
+		return APIBean.REFRESH_ACTION;
 	}
 
 	public Date getDate() {
@@ -310,14 +139,6 @@ public class SessionBean {
 
 	public void setUserBean(UserBean userBean) {
 		this.userBean = userBean;
-	}
-
-	public PushBean getPushBean() {
-		return pushBean;
-	}
-
-	public void setPushBean(PushBean pushBean) {
-		this.pushBean = pushBean;
 	}
 
 	public String getNumber() {
@@ -349,11 +170,11 @@ public class SessionBean {
 	
 	public String changeColor(String colorCode) {
 		session.changeUserColor(colorCode);
-		return actionRefresh(); // TODO: ZLE ZLE RIESENIE
+		return refresh(); // TODO: ZLE ZLE RIESENIE
 	}
 
 	public boolean isPollEnabled() {
-//		log.info("RETURN: "+pollEnabled);
+//		log.info("POLL ENABLED ("+session.getUser().getName()+"): "+pollEnabled);
 		return pollEnabled;
 	}
 
@@ -362,12 +183,20 @@ public class SessionBean {
 	}
 	
 	public void disablePoll() {
-		log.info("DISABLING POLL");
+		log.info("DISABLING POLL ("+session.getUser().getName()+")");
 		pollEnabled = false;
 	}
 
 	public void enablePoll() {
-		log.info("ENABLING POLL");
+		log.info("ENABLING POLL ("+session.getUser().getName()+")");
 		pollEnabled = true;
+	}
+	
+	public Changeset getChangeset(Long id) {
+		return padBean.getChangeset(id);
+	}
+	
+	public Date getTime() {
+		return DateUtils.now();
 	}
 }

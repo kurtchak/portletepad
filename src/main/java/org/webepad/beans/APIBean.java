@@ -1,11 +1,18 @@
 package org.webepad.beans;
 
+import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.PostConstruct;
 import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.SessionScoped;
+import javax.faces.context.FacesContext;
+import javax.portlet.PortletRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.webepad.control.PushControl;
 import org.webepad.model.Pad;
 import org.webepad.model.Session;
 import org.webepad.model.User;
@@ -13,6 +20,11 @@ import org.webepad.model.User;
 @ManagedBean(name = "apiBean")
 @SessionScoped
 public class APIBean {
+	public static final String OPEN_PAD_ACTION = "openPad";
+	public static final String LEAVE_PAD_ACTION = "padList";
+	public static final String REFRESH_ACTION = "refresh";
+	public static final String ERROR_ACTION = "error";
+	
 	@ManagedProperty(value="#{padBean}")
 	private PadBean padBean;
 	@ManagedProperty(value="#{sessionBean}")
@@ -20,68 +32,109 @@ public class APIBean {
 	@ManagedProperty(value="#{userBean}")
 	private UserBean userBean;
 
+	private Logger log = LoggerFactory.getLogger(APIBean.class);
+	private PushControl pushControl;
+	
 	private String padname;
 	private String username;
 	private String password;
-	
+	private User user;
 	private Boolean auth = false;
 	
 	public APIBean() {
+	}
+
+	@PostConstruct
+	public void initialize() {
+		initializePushTopic();
+		loadLoggedUser();
+	}
+
+	private void initializePushTopic() {
+		if (pushControl == null) {
+			pushControl = new PushControl();
+		}
+		pushControl.initializeTopic();
+	}
+
+	private void loadLoggedUser() {
+		PortletRequest req = (PortletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
+		String name = req.getRemoteUser();
+		if (name == null) {
+			user = null;
+		} else if (user != null && name.equals(user.getName())) {
+			return;
+		} else {
+			user = userBean.getUser(name);
+			if (user == null) {
+				user = new User(name);
+				userBean.save(user);
+			}
+			log.info("LOADED USER: " + user.getName());
+		}
+	}
+
+	public void reloadActualUser() {
+		if (user != null) {
+			loadLoggedUser();
+		}
 	}
 
 	public List<Pad> getPads() {
 		return padBean.getPads();
 	}
 
-	public List<Session> getSessions() {
-		return sessionBean.getSessions();
+	public Collection<Pad> getActivePads() {
+		return padBean.getActivePads();
 	}
 
 	public String createNewPad() {
-		User user = userBean.getActualUser();
-		Pad pad = padBean.createNewPad(padname, user);
-		padBean.loadPad(pad);
-		return openPadSession(pad, user);
+		if (user != null) {
+			Pad pad = padBean.createNewPad(padname, user);
+			pad.setPushControl(pushControl); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
+			return openPadSession(pad, user);
+		}
+		return ERROR_ACTION;
 	}
 
-	public String deletePad() {
-		padBean.deteleSelectedPad();
-		userBean.reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
-		return "refresh";
+	public String deletePad(Pad pad) {
+		padBean.deletePad(pad);
+		reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
+		return REFRESH_ACTION;
 	}
 	
 	public String togglePadLock(Pad pad) {
 		pad.setReadOnly(!pad.getReadOnly());
 		padBean.update(pad);
-		return "refresh";
+		return REFRESH_ACTION;
 	}
 	
-	public String openListedPad() {
-		padBean.loadListedPad();
-		Pad pad = padBean.getPad();
-		User user = userBean.getActualUser();
-		return openPadSession(pad, user);
+	public String openPad(Pad pad) {
+		if (user != null) {
+			pad.setPushControl(pushControl); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
+			return openPadSession(pad, user);
+		}
+		return ERROR_ACTION;
 	}
 
 	public String openPadSession(Pad pad, User user) {
 		Session session = padBean.openSession(pad, user);
-		sessionBean.loadSession(session);
-		userBean.reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
 		if (session != null) {
-			return "openPad";
-		} else {
-			return "error";
+			sessionBean.loadSession(session);
+			reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
+			return OPEN_PAD_ACTION;
 		}
+		return ERROR_ACTION;
 	}
 
 	public String openSession(Session session) {
-		padBean.openSession(session);
-		sessionBean.loadSession(session);
 		if (session != null) {
-			return "openPad";
-		} else {
-			return "error";
+			session.getPad().setPushControl(pushControl); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
+			session = padBean.openSession(session);
+			sessionBean.loadSession(session);
+			return OPEN_PAD_ACTION;
 		}
+		return ERROR_ACTION;
 	}
 	
 	public PadBean getPadBean() {
@@ -106,6 +159,14 @@ public class APIBean {
 
 	public void setSessionBean(SessionBean sessionBean) {
 		this.sessionBean = sessionBean;
+	}
+
+	public PushControl getPushBean() {
+		return pushControl;
+	}
+
+	public void setPushBean(PushControl pushBean) {
+		this.pushControl = pushBean;
 	}
 
 	public String getPadname() {
@@ -138,5 +199,23 @@ public class APIBean {
 
 	public void setAuth(Boolean auth) {
 		this.auth = auth;
+	}
+	
+	public User getUser() {
+		if (user == null) {
+			loadLoggedUser();
+		}
+		return user;
+	}
+
+	public void setUser(User user) {
+		this.user = user;
+	}
+
+	public String getTopicAddress() {
+		if (pushControl != null) {
+			return pushControl.getTopicAddress();
+		}
+		return null;
 	}
 }

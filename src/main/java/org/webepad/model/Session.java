@@ -2,19 +2,16 @@ package org.webepad.model;
 
 import java.awt.Color;
 import java.util.Date;
-import java.util.List;
+import java.util.LinkedList;
 
+import org.richfaces.application.push.MessageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webepad.beans.SessionBean;
-import org.webepad.control.CustomPadMessageFactory;
-import org.webepad.control.PadAssembler;
 import org.webepad.control.PadContent;
-import org.webepad.control.PadMessageFactory;
 import org.webepad.control.TextSlice;
 import org.webepad.dao.SessionDAO;
 import org.webepad.dao.hibernate.HibernateDAOFactory;
-import org.webepad.exceptions.MalformedMessage;
 import org.webepad.utils.DateUtils;
 import org.webepad.utils.ExceptionHandler;
 
@@ -26,27 +23,24 @@ public class Session extends TemporalEntity {
 	private static final long serialVersionUID = -1299346837237381381L;
 	private static Logger log = LoggerFactory.getLogger(Session.class);
 
-	private PadMessageFactory messageFactory;
-	private SessionDAO sessionDAO;
+	private SessionDAO sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
 	private String colorCode;
 	private Color color;
 	private Boolean colored;
 	private Date opened;
 	private Date lastSeen;
 	private Pad pad;
-	private PadAssembler padAssembler;
+	private LinkedList<String> remoteChangesetsQueue = new LinkedList<String>();
 
 	/////////////////////////////////////////
 	// CONSTRUCTORS
 	public Session() {
-		sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
 	}
 	
-	public Session(User user, Pad pad) {
-		sessionDAO = HibernateDAOFactory.getInstance().getSessionDAO();
+	public Session(User user, Pad pad) throws Exception {
 		setUser(user);
 		this.pad = pad;
-		colorCode = pad.notUsedColor();
+		colorCode = pad.getFreeColor();
 		setCreated(DateUtils.now());
 		lastSeen = getCreated();
 	}
@@ -55,8 +49,8 @@ public class Session extends TemporalEntity {
 	 * Opens the session with initialization of pad constructed from changesets
 	 */
 	public void open() {
-		buildPadContent();
 		setOpened(DateUtils.now());
+		pad.addActiveSession(this);
 	}
 
 	/**
@@ -66,105 +60,9 @@ public class Session extends TemporalEntity {
 	public void close() {
 		setLastSeen(DateUtils.now());
 		update();
-//		log.info("IS USER SESSION ALREADY IN USERSESSIONS ? ");
-//		log.info(this.getCreator().getPadSessions().get(this).toString());
-		messageFactory.publishMessage(leaveMessage());
-		messageFactory.closeConnection();
+		pad.removeActiveSession(this);
 	}
 	
-	/**
-	 * Initializes this sessions listener and sender for communication with other sessions
-	 * and publishes the join message to the topic
-	 * @param sessionBean
-	 */
-	public void startListener(SessionBean sessionBean) {
-		messageFactory = new CustomPadMessageFactory();
-		messageFactory.initConection(sessionBean);
-		messageFactory.publishMessage(joinMessage());
-	}
-	
-	/**
-	 * Publishes constructed response message to the topic
-	 * @param toPadId
-	 * @param toUserId
-	 */
-	public void sendReponseMessage(Long toPadId, Long toUserId) {
-		messageFactory.publishMessage(responseMessage(toPadId, toUserId));
-	}
-	
-	/**
-	 * The message that produce the user already joined on pad and sending towards the recently joined user
-	 * to inform him about his present. The message is generated after the receive of joinMessage from the
-	 * actually joined user
-	 * @param toPadId
-	 * @param toUserId
-	 * @return
-	 */
-	private String responseMessage(Long toPadId, Long toUserId) {
-		StringBuilder sb = new StringBuilder();
-		// example message: R:1:2:1:1 ~ from|to
-		sb.append("R:").append(pad.getId()).append(":").append(getUser().getId()) 
-		.append(":").append(toPadId).append(":").append(toUserId); // R as Response on Join msg
-		return sb.toString();
-	}
-
-	/**
-	 * Join message is published by user actually joined to the pad for o all colaborative users to inform them.
-	 * @return
-	 */
-	private String joinMessage() {
-		StringBuilder sb = new StringBuilder();
-		// example message: J:1:2
-		sb.append("J:").append(pad.getId()).append(":").append(getUser().getId()); // J as Join of user into Pad
-		return sb.toString();
-	}
-
-	/**
-	 * Leave message is published by the user actually leaving the pad to for other joined pad users.
-	 * @return
-	 */
-	private String leaveMessage() {
-		StringBuilder sb = new StringBuilder();
-		// example message: L:1:2
-		sb.append("L:").append(pad.getId()).append(":").append(getUser().getId()); // L as Join of user into Pad
-		return sb.toString();
-	}
-
-	/**
-	 * This message is published on change event occured in the local editor for other pad users to update their editor.
-	 * @param changeset
-	 * @return
-	 */
-	private String changesetMessage(Changeset c, int spanId, int spanPos, int leftId, int rightId) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("C:").append(c.getId()).append(";");
-		sb.append("_").append(spanId).append(":").append(spanPos).append("_");
-		sb.append("[").append(leftId).append(",").append(rightId).append("]");
-		return sb.toString(); // C as Changeset created on Pad
-	}
-
-	/**
-	 * Message tells other users that the user has changed its text color for the current pad.
-	 * @param colorCode
-	 * @param colorCode 
-	 * @return
-	 */
-	private String colorChangeMessage(String prevColor, String newColor) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("UC:").append(getUser().getId()).append(":").append(getPad().getId()).append(":").append(prevColor);
-		return sb.toString();
-	}
-	
-	/**
-	 * Received message is parsed and processed.
-	 * @param msg
-	 * @param sessionBean
-	 * @throws MalformedMessage 
-	 */
-	public void processMessage(String msg) throws MalformedMessage {
-		messageFactory.processMessage(msg);
-	}
-
 	/**
 	 * Adds local changeset to pad and applies it to produce actual editor content
 	 * @param changeset
@@ -173,20 +71,16 @@ public class Session extends TemporalEntity {
 		changeset.setPad(getPad());
 		changeset.setAuthor(getUser());
 		try {
-			pad.appendChangeset(changeset);
-			PadContent padContent = padAssembler.applyLocalChangeset(changeset);
-			TextSlice touchedTs = padContent.getTouchedTs();
-			int spanId = 0, leftId = 0, rightId = 0, spanPos = 0;
-			if (touchedTs != null) {
-				spanId = touchedTs.getSpanId();
-				TextSlice left = padContent.getPrevTextSlice(touchedTs);
-				TextSlice right = padContent.getNextTextSlice(touchedTs);
-				leftId = left != null && left.isTextSpan() ? left.getSpanId() : 0;
-				rightId = right != null && right.isTextSpan() ? right.getSpanId() : 0;
-				spanPos = touchedTs.getLastActivePos();
+			PadContent padContent = pad.appendChangeset(changeset);
+			StringBuilder sb = new StringBuilder();
+			for (Session s : pad.getOtherActivePadSessions(this)) {
+				sb.append(s.getUser().getName()+", ");
 			}
-			// TODO: change name changeMessage to generateChangeMessage 
-			messageFactory.publishMessage(changesetMessage(changeset, spanId, spanPos, leftId, rightId)); // korekcia pozicie +1
+			log.info("PUBLISHING CHANGESET TO: "+sb.toString().substring(0, sb.length()-2)+ " [padContent: "+padContent.hashCode()+"]");
+			for (Session s : pad.getOtherActivePadSessions(this)) {
+				s.newChangesetAdded(changeset, padContent);
+			}
+//			messageFactory.publishMessage(changesetMessage(changeset, spanId, spanPos, leftId, rightId)); // korekcia pozicie +1
 		} catch (Exception e) {
 			ExceptionHandler.handle(e);
 		}
@@ -197,33 +91,82 @@ public class Session extends TemporalEntity {
 //		padAssembler.applyRemoteChangeset(changeset);
 //	}
 
-	/**
-	 * Builds pad content from loaded changesets
-	 */
-	public void buildPadContent() {
+	public void newChangesetAdded(Changeset c, PadContent padContent) {
+		log.info(getUser().getName()+": NEW CHANGESET ADDED BY: "+ c.getUser().getName());
+		if (padContent != null) {
+			TextSlice touchedTs = padContent.getTouchedTs();
+			int spanId = 0, leftId = 0, rightId = 0, spanPos = 0;
+			if (touchedTs != null) {
+				spanId = touchedTs.getSpanId();
+				TextSlice left = padContent.getPrevTextSlice(touchedTs);
+				TextSlice right = padContent.getNextTextSlice(touchedTs);
+				leftId = left != null && left.isTextSpan() ? left.getSpanId() : 0;
+				rightId = right != null && right.isTextSpan() ? right.getSpanId() : 0;
+				spanPos = touchedTs.getLastActivePos();
+				String info = generateRemoteChangeString(c, spanId, spanPos, leftId, rightId);
+				try {
+					if (remoteChangesetsQueue.isEmpty()) {
+						processToView(info);
+					} else {
+						publishToQueue(info);
+					}
+				} catch (MessageException e) {
+					ExceptionHandler.handle(e,e.getMessage()+"\n (processing full reload for consistency to be kept)",true);
+					reloadEditorContent();
+				}
+			}
+		} else {
+			reloadEditorContent();
+		}
+		log.info("\\"+getUser().getName()+": NEW CHANGESET ADDED BY: "+ c.getUser().getName()+ " [padContent: "+padContent.hashCode()+"]");
+	}
+
+	private void publishToQueue(String receivedString) {
+//		TODO: AGGREGATE SUBSEQUENT CHANGES INTO ONE MESSAGE
+//		if (!remoteChangesetsQueue.isEmpty()) {
+//			String lastReceived = remoteChangesetsQueue.getLast();
+//			Matcher mLast = Session.CHANGESET_MSG_PATTERN.matcher(lastReceived);
+//			Matcher mActual = Session.CHANGESET_MSG_PATTERN.matcher(receivedString);
+//			if (mLast.find() && mActual.find() && mLast.group(group)
+//		}
+		log.info("Adding change to queue: "+receivedString);
+		remoteChangesetsQueue.addLast(receivedString);
+	}
+
+	private String generateRemoteChangeString(Changeset c, int spanId, int spanPos, int leftId, int rightId) {
+		StringBuilder sb = new StringBuilder();
+		// IDENTIFICATION OF SENDER
+		sb.append("@[p"+pad.getId()+"u"+getUser().getId()+"]");
+		sb.append(SessionBean.CHANGESET).append(":");
+		sb.append(c.getAction()).append(":");
+		sb.append(spanId).append(":");
+		sb.append(spanPos).append(":");
+		sb.append(c.getCharbank() == null ? "" : c.getCharbank()).append(":");
+		sb.append(leftId).append(":");
+		sb.append(rightId).append(":");
+		sb.append(c.getOffset()).append(":");
+		sb.append(c.getSession().getColorCode());
+		return sb.toString();
+	}
+
+	private void processToView(String info) throws MessageException {
+		log.info("processToView: "+info);
+		pad.getPushControl().sendMessage(info);
+	}
+	
+	public void processNext() {
 		try {
-			padAssembler = new PadAssembler(this);
-			padAssembler.buildViewRepr();
-			log.info(padAssembler.getViewRepr());
-		} catch (Exception e) {
+			if (!remoteChangesetsQueue.isEmpty()) {
+				log.info("Popping from the queue: "+remoteChangesetsQueue.peek());
+				processToView(remoteChangesetsQueue.pop());
+			} else {
+				log.info("Queue is empty: "+remoteChangesetsQueue.peek());
+			}
+		} catch (MessageException e) {
 			ExceptionHandler.handle(e);
 		}
 	}
-
-	/**
-	 * Appends new changesets (submitted by the remote users) to pad
-	 */
-	public void updatePad(List<Changeset> changesets) {
-		pad.appendRemoteChangesets(changesets);
-		updateEditorContent(changesets);
-	}
 	
-	private void updateEditorContent(List<Changeset> changesets) {
-		for (Changeset ch : changesets) {
-			padAssembler.applyRemoteChangeset(ch);
-		}
-	}
-
 	// Data manipulation methods
 	public void save() {
 		sessionDAO.insert(this);
@@ -301,14 +244,6 @@ public class Session extends TemporalEntity {
 		return getUser().equals(pad.getCreator());
 	}
 
-	public PadAssembler getPadAssembler() {
-		return padAssembler;
-	}
-
-	public void setPadAssembler(PadAssembler padAssembler) {
-		this.padAssembler = padAssembler;
-	}
-
 	public Date getOpened() {
 		return opened;
 	}
@@ -323,10 +258,10 @@ public class Session extends TemporalEntity {
 	}
 
 	public void changeUserColor(String colorCode) {
-		String prevColorCode = getColorCode();
+//		String prevColorCode = getColorCode();
 		setColorCode(colorCode);
 		update();
-		messageFactory.publishMessage(colorChangeMessage(prevColorCode, colorCode));
+//		messageFactory.publishMessage(colorChangeMessage(prevColorCode, colorCode));
 	}
 
 	public String getColorClass() {
@@ -334,5 +269,21 @@ public class Session extends TemporalEntity {
 			return "cl"+colorCode.substring(1);
 		}
 		return null;
+	}
+
+	public void reloadEditorContent() {
+		pad.reloadPadContent();
+		String content = pad.getContent();
+		try {
+			processToView(refreshEditorContent(content));
+		} catch (MessageException e) {
+			ExceptionHandler.handle(e);
+		}
+	}
+
+	private String refreshEditorContent(String content) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("REFRESH:").append(getUser().getId()).append(":").append(getPad().getId()).append(":").append(content);
+		return sb.toString();
 	}
 }
