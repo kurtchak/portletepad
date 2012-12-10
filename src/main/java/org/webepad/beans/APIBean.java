@@ -6,19 +6,18 @@ import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ManagedProperty;
-import javax.faces.bean.SessionScoped;
+import javax.faces.bean.RequestScoped;
 import javax.faces.context.FacesContext;
 import javax.portlet.PortletRequest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.webepad.control.PushControl;
 import org.webepad.model.Pad;
 import org.webepad.model.Session;
 import org.webepad.model.User;
 
 @ManagedBean(name = "apiBean")
-@SessionScoped
+@RequestScoped
 public class APIBean {
 	public static final String OPEN_PAD_ACTION = "openPad";
 	public static final String LEAVE_PAD_ACTION = "padList";
@@ -35,7 +34,6 @@ public class APIBean {
 	private UserBean userBean;
 
 	private Logger log = LoggerFactory.getLogger(APIBean.class);
-	private PushControl pushControl;
 	
 	private String padname;
 	private String username;
@@ -46,48 +44,12 @@ public class APIBean {
 	public APIBean() {
 	}
 
-	@PostConstruct
-	public void initialize() {
-		initializePushTopic();
-		loadLoggedUser();
-	}
-
-	private void initializePushTopic() {
-		if (pushControl == null) {
-			pushControl = new PushControl();
-		}
-		pushControl.initializeTopic();
-	}
-
-	private void loadLoggedUser() {
-		PortletRequest req = (PortletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
-		String name = req.getRemoteUser();
-		if (name == null) {
-			user = null;
-		} else if (user != null && name.equals(user.getName())) {
-			return;
-		} else {
-			user = userBean.getUser(name);
-			if (user == null) {
-				user = new User(name);
-				userBean.save(user);
-			}
-			log.info("LOADED USER: " + user.getName());
-		}
-	}
-
-	public void reloadActualUser() {
-		if (user != null) {
-			loadLoggedUser();
-		}
-	}
-
 	private void refreshUsersInfo() {
 		setUser(userBean.getUser(user.getId()));
 	}
 
 	public List<Pad> getPads() {
-		log.info("APIBean.getPads...");
+//		log.info("APIBean.getPads...");
 		return padBean.getPads();
 	}
 
@@ -98,7 +60,6 @@ public class APIBean {
 	public String createNewPad() {
 		if (user != null) {
 			Pad pad = padBean.createNewPad(padname, user);
-			pad.setPushControl(pushControl); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
 			return openPadSession(pad, user, READWRITE);
 		}
 		return ERROR_ACTION;
@@ -117,14 +78,15 @@ public class APIBean {
 	}
 	
 	public String openPad(Pad pad) {
+		user = userBean.getActualUser();
 		if (user != null) {
-			pad.setPushControl(pushControl); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
 			return openPadSession(pad, user, READWRITE);
 		}
 		return ERROR_ACTION;
 	}
 
 	public String openReadOnlyPad(Pad pad) {
+		user = userBean.getActualUser();
 		if (user != null) {
 			return openPadSession(pad, user, READONLY);
 		}
@@ -143,7 +105,6 @@ public class APIBean {
 
 	public String openSession(Session session) {
 		if (session != null) {
-			session.getPad().setPushControl(pushControl); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
 			session = padBean.openSession(session);
 			sessionBean.loadSession(session);
 			return OPEN_PAD_ACTION;
@@ -173,14 +134,6 @@ public class APIBean {
 
 	public void setSessionBean(SessionBean sessionBean) {
 		this.sessionBean = sessionBean;
-	}
-
-	public PushControl getPushBean() {
-		return pushControl;
-	}
-
-	public void setPushBean(PushControl pushBean) {
-		this.pushControl = pushBean;
 	}
 
 	public String getPadname() {
@@ -216,10 +169,7 @@ public class APIBean {
 	}
 	
 	public User getUser() {
-		if (user == null) {
-			loadLoggedUser();
-		}
-		return user;
+		return userBean.getActualUser();
 	}
 
 	public void setUser(User user) {
@@ -227,9 +177,6 @@ public class APIBean {
 	}
 
 	public String getTopicAddress() {
-		if (pushControl != null) {
-			return pushControl.getTopicAddress();
-		}
-		return null;
+		return padBean.getTopicAddress();
 	}
 }

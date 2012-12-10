@@ -16,8 +16,7 @@
 			<h:panelGroup rendered="#{not empty apiBean.user}">
 				<h:form id="padForm" class="padForm">
 					<a4j:outputPanel id="pollPanel">
-						<h:outputText id="datePanel" class="datePanel" value="#{sessionBean.time}"/>
-						<a4j:poll id="pollElement" enabled="#{sessionBean.pollEnabled}" interval="1000" render="padListBody,pollPanel" status="none"/>
+						<a4j:poll id="pollElement" enabled="#{sessionBean.pollEnabled}" interval="2000" render="padListBody,pollPanel" status="none"/>
 					</a4j:outputPanel>
 					<h:panelGroup>
 						<h:panelGrid layout="block" class="userHeading" id="userHeading">

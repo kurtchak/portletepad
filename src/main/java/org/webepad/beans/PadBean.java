@@ -1,6 +1,5 @@
 package org.webepad.beans;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -11,6 +10,7 @@ import javax.faces.bean.SessionScoped;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.webepad.control.PushControl;
 import org.webepad.dao.ChangesetDAO;
 import org.webepad.dao.PadDAO;
 import org.webepad.dao.hibernate.HibernateDAOFactory;
@@ -26,18 +26,26 @@ public class PadBean {
 	private static Logger log = LoggerFactory.getLogger(PadBean.class);
 	private PadDAO padDAO = HibernateDAOFactory.getInstance().getPadDAO();
 	private ChangesetDAO changesetDAO = HibernateDAOFactory.getInstance().getChangesetDAO();
-	private static Map<Long,Pad> activePads = new HashMap<Long, Pad>();
-	
+	private static Map<Long, Pad> activePads = new HashMap<Long, Pad>();
+
 	private Pad pad;
-	private List<Pad> pads = new ArrayList<Pad>();
-	
+	private PushControl pushControl;
+
 	public PadBean() {
+		initializePushTopic();
 	}
-	
-	//////////////////////////////////////////////
+
+	private void initializePushTopic() {
+		if (pushControl == null) {
+			pushControl = new PushControl();
+		}
+		pushControl.initializeTopic();
+	}
+
+	// ////////////////////////////////////////////
 	// LOADING OF THE MAIN OBJECT FOR THE VIEW
 	public void loadPad(Long id) {
-		Pad pad = padDAO.getPad(id); 
+		Pad pad = padDAO.getPad(id);
 		loadPad(pad);
 	}
 
@@ -50,23 +58,16 @@ public class PadBean {
 	}
 
 	public List<Pad> getPads() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("PadBean.getPads...");
-		if (pads == null || pads.isEmpty()) {
-			sb.append("from DB");
-			pads = padDAO.readPads();
-		}
-		log.info(sb.toString());
-		return pads;
+		return padDAO.readPads();
 	}
-	
+
 	public synchronized Collection<Pad> getActivePads() {
 		if (activePads != null) {
 			return activePads.values();
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Pad CRUD
 	 */
@@ -87,6 +88,7 @@ public class PadBean {
 
 	/**
 	 * Creation of new Pad
+	 * 
 	 * @param name
 	 * @param creator
 	 * @return
@@ -102,6 +104,7 @@ public class PadBean {
 
 	public synchronized Session openSession(Pad pad, User user, int access) {
 		if (pad != null) {
+			pad.setPushControl(pushControl); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
 			if (access == APIBean.READWRITE) {
 				pad = addActivePad(pad);
 			} else {
@@ -115,6 +118,9 @@ public class PadBean {
 
 	public synchronized Session openSession(Session session) {
 		if (session != null) {
+			if (activePads.containsKey(session.getPad().getId())) {
+				session.getPad().setPushControl(pushControl); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
+			}
 			Pad pad = addActivePad(session.getPad());
 			loadPad(pad);
 			session.setPad(pad);
@@ -132,21 +138,26 @@ public class PadBean {
 			}
 		}
 	}
-	
+
 	private synchronized Pad addActivePad(Pad pad) {
 		if (activePads.containsKey(pad.getId())) {
 			pad = activePads.get(pad.getId());
-			log.info("PAD:"+pad.getName()+" ALREADY ADDED TO >> ACTIVE PADS. RETRIEVING MANAGED PAD WITH HASHCODE ["+pad.hashCode()+"]");
+			log.info("PAD:"
+					+ pad.getName()
+					+ " ALREADY ADDED TO >> ACTIVE PADS. RETRIEVING MANAGED PAD WITH HASHCODE ["
+					+ pad.hashCode() + "]");
 		} else {
 			activePads.put(pad.getId(), pad);
-			log.info("PAD:"+pad.getName()+" ADDED TO >> ACTIVE PADS WITH HASHCODE ["+pad.hashCode()+"]");
+			log.info("PAD:" + pad.getName()
+					+ " ADDED TO >> ACTIVE PADS WITH HASHCODE ["
+					+ pad.hashCode() + "]");
 		}
 		return pad;
 	}
 
 	public synchronized void removeActivePad(Pad pad) {
 		activePads.remove(pad.getId());
-		log.info("PAD:"+pad.getName()+" REMOVED FROM << ACTIVE PADS.");
+		log.info("PAD:" + pad.getName() + " REMOVED FROM << ACTIVE PADS.");
 	}
 
 	public Pad getPad() {
@@ -155,6 +166,14 @@ public class PadBean {
 
 	public void setPad(Pad pad) {
 		this.pad = pad;
+	}
+
+	public PushControl getPushBean() {
+		return pushControl;
+	}
+
+	public void setPushBean(PushControl pushBean) {
+		this.pushControl = pushBean;
 	}
 
 	public Changeset getChangeset(Long id) {
@@ -166,5 +185,12 @@ public class PadBean {
 			pad = activePads.get(pad.getId());
 		}
 		pad.setReadOnly(!pad.isReadOnly());
+	}
+
+	public String getTopicAddress() {
+		if (pushControl != null) {
+			return pushControl.getTopicAddress();
+		}
+		return null;
 	}
 }

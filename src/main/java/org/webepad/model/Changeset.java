@@ -124,7 +124,9 @@ public class Changeset extends TemporalEntity {
 
 	public void setAuthor(User author) {
 		setCreator(author);
-		session = pad.getUserSessions().get(author.getId());
+		if (pad != null && pad.getUserSessions() != null) {
+			session = pad.getUserSessions().get(author.getId());
+		}
 	}
 
 	public void save() {
