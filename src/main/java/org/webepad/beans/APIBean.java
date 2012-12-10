@@ -87,6 +87,7 @@ public class APIBean {
 	}
 
 	public List<Pad> getPads() {
+		log.info("APIBean.getPads...");
 		return padBean.getPads();
 	}
 

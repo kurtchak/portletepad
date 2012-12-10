@@ -259,10 +259,11 @@ public class Session extends TemporalEntity {
 		return DateUtils.getShortDate(date);
 	}
 
-	public void changeUserColor(String colorCode) {
-//		String prevColorCode = getColorCode();
+	public void changeUserColor(String colorCode) throws MessageException {
+		String prevColorCode = getColorCode();
 		setColorCode(colorCode);
 		update();
+		processToView("UC:"+prevColorCode+"to"+colorCode);
 //		messageFactory.publishMessage(colorChangeMessage(prevColorCode, colorCode));
 	}
 

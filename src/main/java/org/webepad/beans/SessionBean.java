@@ -8,6 +8,7 @@ import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.SessionScoped;
 
+import org.richfaces.application.push.MessageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webepad.control.TextSlice;
@@ -16,6 +17,7 @@ import org.webepad.dao.hibernate.HibernateDAOFactory;
 import org.webepad.model.Changeset;
 import org.webepad.model.Session;
 import org.webepad.utils.DateUtils;
+import org.webepad.utils.ExceptionHandler;
 
 @ManagedBean(name = "sessionBean")
 @SessionScoped
@@ -167,7 +169,11 @@ public class SessionBean {
 	}
 	
 	public String changeColor(String colorCode) {
-		session.changeUserColor(colorCode);
+		try {
+			session.changeUserColor(colorCode);
+		} catch (MessageException e) {
+			ExceptionHandler.handle(e);
+		}
 		return refresh(); // TODO: ZLE ZLE RIESENIE
 	}
 

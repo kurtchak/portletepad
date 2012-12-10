@@ -1,5 +1,6 @@
 package org.webepad.beans;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +29,7 @@ public class PadBean {
 	private static Map<Long,Pad> activePads = new HashMap<Long, Pad>();
 	
 	private Pad pad;
+	private List<Pad> pads = new ArrayList<Pad>();
 	
 	public PadBean() {
 	}
@@ -48,7 +50,14 @@ public class PadBean {
 	}
 
 	public List<Pad> getPads() {
-		return padDAO.readPads();
+		StringBuilder sb = new StringBuilder();
+		sb.append("PadBean.getPads...");
+		if (pads == null || pads.isEmpty()) {
+			sb.append("from DB");
+			pads = padDAO.readPads();
+		}
+		log.info(sb.toString());
+		return pads;
 	}
 	
 	public synchronized Collection<Pad> getActivePads() {

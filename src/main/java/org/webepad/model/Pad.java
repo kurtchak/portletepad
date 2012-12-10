@@ -15,7 +15,6 @@ import org.webepad.control.PadContent;
 import org.webepad.control.PushControl;
 import org.webepad.dao.hibernate.HibernateDAOFactory;
 import org.webepad.exceptions.NotFoundException;
-import org.webepad.persistence.HibernateUtil;
 import org.webepad.utils.DateUtils;
 import org.webepad.utils.ExceptionHandler;
 import org.webepad.utils.PadColorPalette;
@@ -183,8 +182,7 @@ public class Pad extends NamedTemporalEntity {
 	}
 	
 	public synchronized String getFreeColor() throws Exception {
-		log.info("GET FREE COLOR...");
-		log.info("USER SESSIONS: "+getUserSessions().size());
+		refreshFreeColors();
 		if (freeColors.isEmpty()) {
 			throw new Exception("Out of free colors.");
 		}
@@ -192,7 +190,16 @@ public class Pad extends NamedTemporalEntity {
 	}
 	
 	public List<String> getFreeColors() {
+		refreshFreeColors();
 		return freeColors;
+	}
+	
+	private void refreshFreeColors() {
+		List<Session> sessions = HibernateDAOFactory.getInstance().getSessionDAO().readUserSessions(getId());
+		freeColors = PadColorPalette.getColors();
+		for (Session s : sessions) {
+			freeColors.remove(s.getColorCode());
+		}
 	}
 
 	public void setReadOnly(Boolean ro) {
