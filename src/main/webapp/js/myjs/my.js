@@ -290,13 +290,16 @@ function writeRemoteChange(changeInfo) {
 						}
 					}
 				} else { // synchronize .. rebuild + translate + placeCaret
-					alert('synchronize .. rebuild + translate + placeCaret ?');
+					console.log('synchronize .. rebuild + translate + placeCaret ?');
+					$("#refreshEditorContentAnchor").next().click();
 				}
 				return;
 			} else if (rAction == 'A') {
-				alert("ATTRIBUTE CHANGE - NOT IMPLEMENTED");
+				console.log("ATTRIBUTE CHANGE - NOT IMPLEMENTED");
+				$("#refreshEditorContentAnchor").next().click();
 			} else {
-				alert("UNKNOWN ACTION: "+ rAction);
+				console.log("UNKNOWN ACTION: "+ rAction);
+				$("#refreshEditorContentAnchor").next().click();
 				return;
 			}
 		} //console.log("(after): "+ $(elem) + " | text() -> " +$(elem).text());
@@ -317,10 +320,12 @@ function writeRemoteChange(changeInfo) {
 				var n = createNewTextSlice('', rFgColor, rSpanId, rData); console.log("inserting after left neighbour...");
 				$(n).insertAfter(left); // TODO: insertIntoElem(elem, pos, elemInserted)
 			} else {
-				alert('RemoteSpanPos('+rSpanPos+') exceedes length('+$(left).text().length+') of element.');
+				console.log('RemoteSpanPos('+rSpanPos+') exceedes length('+$(left).text().length+') of element.');
+				$("#refreshEditorContentAnchor").next().click();
 			}
 		} else {
-			alert('NOT FOUND LEFT SIBLING');
+			console.log('NOT FOUND LEFT SIBLING');
+			$("#refreshEditorContentAnchor").next().click();
 		}
 	} else if (rRightId > 0) { console.log('REMOTE RIGHT TAKEN');
 		var right = getTextSlice(rRightId);
@@ -336,17 +341,20 @@ function writeRemoteChange(changeInfo) {
 				console.log($(right));
 				console.log($(right).prev());
 				if (!isNull($(right).prev())) {
-					alert("deleting:"+$(right).prev());
+					console.log("deleting:"+$(right).prev());
 					$($(right).prev()).remove();
 				}
 			} else if (rAction == "A") {
-				alert("Action A not implemented yet");
+				console.log("Action A not implemented yet");
+				$("#refreshEditorContentAnchor").next().click();
 			} else {
-				alert("Unknown action: "+rAction);
+				console.log("Unknown action: "+rAction);
+				$("#refreshEditorContentAnchor").next().click();
 			}
 
 		} else {
-			alert('NOT FOUND RIGHT SIBLING');
+			console.log('NOT FOUND RIGHT SIBLING');
+			$("#refreshEditorContentAnchor").next().click();
 		}
 		
 	} else if ($('#editor').find('span').length <= 1) { console.log('EMPTY EDITOR - FIRST ELEMENT IN IT');
@@ -374,12 +382,15 @@ function writeRemoteChange(changeInfo) {
 		} else if (rAction == "D") {
 			$(elem).next().remove();
 		} else if (rAction == "A") {
-			alert("action A not implemented");
+			console.log("action A not implemented");
+			$("#refreshEditorContentAnchor").next().click();
 		} else {
-			alert("unknown action: "+rAction);
+			console.log("unknown action: "+rAction);
+			$("#refreshEditorContentAnchor").next().click();
 		}
 	} else {
-		alert('dajaka chyba');
+		console.log('dajaka chyba');
+		$("#refreshEditorContentAnchor").next().click();
 	}
 	checkAndProcessLastChange('R', caretPos);
 	updateCaretPos();
@@ -748,7 +759,7 @@ function isNull(a) {
 function mergeSlices(a, b) {
 	console.log("MERGESLICES("+a+","+b+")");
 	if (!hasSameToken(a, b)) {
-		alert("Given slices: "+$(a)+", "+$(b)+" cannot be merged, because they doesn't have same token.");
+		console.log("Given slices: "+$(a)+", "+$(b)+" cannot be merged, because they doesn't have same token.");
 	} else if (isCaret($(a).next()) && isCaret($(b).prev())) {
 		console.log("splitted by caret");
 		setSpanId(a, getSpanIdNumber(a)+"a");
@@ -759,7 +770,7 @@ function mergeSlices(a, b) {
 		$(b).remove();
 		console.log("NEW MERGED SLICE:"+getSpanIdNumber(a)+":"+$(a).text());
 	} else {
-		alert("Given slices: "+$(a)+", "+$(b)+" cannot be merged, because they doesn't neigbour.");
+		console.log("Given slices: "+$(a)+", "+$(b)+" cannot be merged, because they doesn't neigbour.");
 	}
 }
 
@@ -944,7 +955,7 @@ function moveCaretHorizontaly(dir, step) {
 	if (!isNull(caret)) {
 		moveCaretWithinNode($('#editor'), dir, caret, $(caret).prev(), $(caret).next());
 	} else {
-		alert('Error: moveCaret: Caret wasn\'t found.');
+		console.log('Error: moveCaret: Caret wasn\'t found.');
 	}
 }
 
@@ -962,7 +973,7 @@ function updateNextSpanId(spanId) {
 		nextSpanId = spanId;
 		console.log('nextSpanId is now '+nextSpanId+'');
 	} else {
-		alert('Given SpanId('+spanId+') is smaller then local NextSpanId('+nextSpanId+')');
+		console.log('Given SpanId('+spanId+') is smaller then local NextSpanId('+nextSpanId+')');
 	}
 }
 
@@ -1019,7 +1030,8 @@ function deleteChar(evn) {
 		numRemoved += 1;
 		$(editor).focus();
 	} else {
-		alert("UNKNOWN PARAMETERS FOR CHAR DELETING");
+		console.log("UNKNOWN PARAMETERS FOR CHAR DELETING");
+		$("#refreshEditorContentAnchor").next().click();
 	}
 }
 

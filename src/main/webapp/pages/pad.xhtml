@@ -35,7 +35,7 @@
 				</a4j:push>
 				<a4j:outputPanel id="pollPanel">
 					<h:outputText id="datePanel" class="datePanel" value="#{sessionBean.time}"/>
-					<a4j:poll id="pollElement" enabled="#{sessionBean.pollEnabled}" interval="1000" render="padUsers,footerForm,datePanel" status="none"/>
+					<a4j:poll id="pollElement" enabled="#{sessionBean.pollEnabled}" interval="1000" render="padUsers,footerForm,pollPanel" status="none"/>
 				</a4j:outputPanel>
 				<h:panelGroup layout="block" id="padBar">
 					<a4j:commandLink styleClass="buttonLink right" value="leave" action="#{sessionBean.leave}"/>
@@ -92,6 +92,10 @@
 								</h:dataTable>
 							</h:panelGrid>
 						</h:panelGrid>
+					</h:panelGroup>
+					<h:panelGroup>
+						<span id="refreshEditorContentAnchor"/>
+						<a4j:commandButton style="display:none" id="refreshEditorContentAnchor" action="#{sessionBean.session.reloadEditorContent}" />
 					</h:panelGroup>
 					<h:panelGroup id="changesetNotifierForm" rendered="#{!sessionBean.session.pad.readOnly}">
 						<span id="anchorForChangeAction" />
