@@ -51,7 +51,7 @@ public class PadBean {
 		return padDAO.readPads();
 	}
 	
-	public Collection<Pad> getActivePads() {
+	public synchronized Collection<Pad> getActivePads() {
 		if (activePads != null) {
 			return activePads.values();
 		}
@@ -70,6 +70,9 @@ public class PadBean {
 	}
 
 	public void deletePad(Pad pad) {
+		if (activePads.containsKey(pad.getId())) {
+			activePads.get(pad.getId()).setReadOnly(true);
+		}
 		padDAO.delete(pad);
 	}
 
@@ -88,9 +91,13 @@ public class PadBean {
 		return pad;
 	}
 
-	public synchronized Session openSession(Pad pad, User user) {
+	public synchronized Session openSession(Pad pad, User user, int access) {
 		if (pad != null) {
-			pad = addActivePad(pad);
+			if (access == APIBean.READWRITE) {
+				pad = addActivePad(pad);
+			} else {
+				pad.setReadOnly(true);
+			}
 			loadPad(pad);
 			return pad.openSession(user);
 		}
@@ -143,5 +150,12 @@ public class PadBean {
 
 	public Changeset getChangeset(Long id) {
 		return changesetDAO.getChangeset(id);
+	}
+
+	public void togglePadLock(Pad pad) {
+		if (activePads.containsKey(pad.getId())) {
+			pad = activePads.get(pad.getId());
+		}
+		pad.setReadOnly(!pad.isReadOnly());
 	}
 }

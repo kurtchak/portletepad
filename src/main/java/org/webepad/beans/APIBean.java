@@ -24,6 +24,8 @@ public class APIBean {
 	public static final String LEAVE_PAD_ACTION = "padList";
 	public static final String REFRESH_ACTION = "refresh";
 	public static final String ERROR_ACTION = "error";
+	public static final int READWRITE = 0;
+	public static final int READONLY = 1;
 	
 	@ManagedProperty(value="#{padBean}")
 	private PadBean padBean;
@@ -80,11 +82,15 @@ public class APIBean {
 		}
 	}
 
+	private void refreshUsersInfo() {
+		setUser(userBean.getUser(user.getId()));
+	}
+
 	public List<Pad> getPads() {
 		return padBean.getPads();
 	}
 
-	public Collection<Pad> getActivePads() {
+	public synchronized Collection<Pad> getActivePads() {
 		return padBean.getActivePads();
 	}
 
@@ -92,19 +98,19 @@ public class APIBean {
 		if (user != null) {
 			Pad pad = padBean.createNewPad(padname, user);
 			pad.setPushControl(pushControl); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
-			return openPadSession(pad, user);
+			return openPadSession(pad, user, READWRITE);
 		}
 		return ERROR_ACTION;
 	}
 
 	public String deletePad(Pad pad) {
 		padBean.deletePad(pad);
-		reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
+		refreshUsersInfo(); // TODO: pri spravnom mapovani by nemalo byt potrebne
 		return REFRESH_ACTION;
 	}
 	
 	public String togglePadLock(Pad pad) {
-		pad.setReadOnly(!pad.getReadOnly());
+		padBean.togglePadLock(pad);
 		padBean.update(pad);
 		return REFRESH_ACTION;
 	}
@@ -112,16 +118,23 @@ public class APIBean {
 	public String openPad(Pad pad) {
 		if (user != null) {
 			pad.setPushControl(pushControl); // TODO: load pushBean for AJAX PUSH FUNCTIONALITY
-			return openPadSession(pad, user);
+			return openPadSession(pad, user, READWRITE);
 		}
 		return ERROR_ACTION;
 	}
 
-	public String openPadSession(Pad pad, User user) {
-		Session session = padBean.openSession(pad, user);
+	public String openReadOnlyPad(Pad pad) {
+		if (user != null) {
+			return openPadSession(pad, user, READONLY);
+		}
+		return ERROR_ACTION;
+	}
+
+	public String openPadSession(Pad pad, User user, int access) {
+		Session session = padBean.openSession(pad, user, access);
 		if (session != null) {
 			sessionBean.loadSession(session);
-			reloadActualUser(); // TODO: pri spravnom mapovani by nemalo byt potrebne
+			refreshUsersInfo(); // TODO: pri spravnom mapovani by nemalo byt potrebne
 			return OPEN_PAD_ACTION;
 		}
 		return ERROR_ACTION;

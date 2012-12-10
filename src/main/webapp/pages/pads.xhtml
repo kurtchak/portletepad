@@ -10,31 +10,18 @@
 <ui:composition template="templates/template.xhtml">
 	<ui:define name="content">
 		<h:panelGroup class="padSitePanel" layout="block">
-			<h:panelGroup rendered="#{apiBean.user == null}" layout="block">
+			<h:panelGroup rendered="#{empty apiBean.user}" layout="block">
 				<ui:include src="noauth.xhtml" />
 			</h:panelGroup>
-			<h:panelGroup rendered="#{apiBean.user != null}">
+			<h:panelGroup rendered="#{not empty apiBean.user}">
 				<h:form id="padForm" class="padForm">
 					<a4j:outputPanel id="pollPanel">
-						#{sessionBean.time}
-						<a4j:poll id="pollElement" enabled="#{sessionBean.pollEnabled}" interval="3000" render="padListBody,pollPanel" status="none"/>
+						<h:outputText class="datePanel" value="#{sessionBean.time}"/>
+						<a4j:poll id="pollElement" enabled="#{sessionBean.pollEnabled}" interval="1000" render="padListBody,pollPanel" status="none"/>
 					</a4j:outputPanel>
 					<h:panelGroup>
-						<h:panelGrid layout="block" class="userHeading" id="userHeading"
-							onmouseover="#{rich:element('popupSessionList')}.setAttribute('style','display:block');"
-							onmouseout="#{rich:element('popupSessionList')}.setAttribute('style','display:none');">
+						<h:panelGrid layout="block" class="userHeading" id="userHeading">
 							<h:outputText value="#{apiBean.user.name}" />
-							<h:panelGroup layout="block" id="popupSessionList" class="popupSessionList left" style="display:none">
-								<h:panelGrid columns="1" rendered="#{!empty userBean.user.recentSessions}">
-									<h:outputText value="Last visited"/>
-									<ui:repeat var="s" value="#{userBean.user.recentSessions}">
-										<h:commandLink class="left #{s.pad.readOnly == true ? 'readOnly' : ''}" action="#{apiBean.openSession(s)}" value="#{s.pad.name}" execute="@form"/><br />
-									</ui:repeat>
-								</h:panelGrid>
-								<h:panelGrid columns="1" rendered="#{empty userBean.user.sessions}">
-									<h:outputText value="No existing sessions"/>
-								</h:panelGrid>
-							</h:panelGroup>
 						</h:panelGrid>
 						<h:panelGroup layout="block" class="heading" id="padList">
 							<h:commandLink value="Available Pads" action="refresh" render="padForm" status="padsstatus" />
@@ -43,52 +30,30 @@
 							<h:panelGroup layout="block">
 								<h:outputText rendered="#{empty apiBean.pads}" value="No pads available in this moment. Start with creating a new one..."/>
 							</h:panelGroup>
-							<h:dataTable rendered="#{not empty apiBean.pads}" columnClasses="padName,name,date,date,lock,delete"
-								id="padTable" value="#{apiBean.pads}" var="pad">
+							<h:dataTable rendered="#{not empty apiBean.pads}" columnClasses="padName,padName,name,date,date,lock,delete" id="padTable" value="#{apiBean.pads}" var="pad">
 								<h:column>
-									<f:facet name="header">
-										<h:outputText value="Name" />
-									</f:facet>
-									<a4j:commandLink class="left #{pad.readOnly == true ? 'readOnly' : ''}"
-										action="#{apiBean.openPad(pad)}"
-										value="#{pad.name} #{pad.readOnly == true ? '(read only)' : ''}"
-										execute="@form" />
+									<a4j:commandLink rendered="#{!pad.readOnly}" action="#{apiBean.openPad(pad)}" value="#{pad.name}" execute="@form" />
+									<h:outputText rendered="#{pad.readOnly}" value="#{pad.name}" />
 								</h:column>
 								<h:column>
-									<f:facet name="header">
-										<h:outputText value="Creator" />
-									</f:facet>
+									<a4j:commandLink action="#{apiBean.openReadOnlyPad(pad)}" value="view" execute="@form" />
+								</h:column>
+								<h:column>
 									<h:outputText value="#{pad.creator.name}" />
 								</h:column>
 								<h:column>
-									<f:facet name="header">
-										<h:outputText value="Modified" />
-									</f:facet>
 									<h:outputText value="#{pad.shortModified}" />
 								</h:column>
 								<h:column>
-									<f:facet name="header">
-										<h:outputText value="Created" />
-									</f:facet>
 									<h:outputText value="#{pad.shortCreated}" />
 								</h:column>
 								<h:column>
-									<f:facet name="header">
-										<h:outputText value="Lock" />
-									</f:facet>
-									<a4j:commandLink render="padForm"
-										rendered="#{pad.creator != null &amp;&amp; apiBean.user == pad.creator}"
-										action="#{apiBean.togglePadLock(pad)}"
-										value="#{pad.readOnly ? 'Unlock' : 'Lock'}" execute="@form" />
-									<h:outputText rendered="#{apiBean.user != pad.creator}"
-										value="#{pad.readOnly ? 'Locked' : ''}" />
+									<a4j:commandLink render="padForm" rendered="#{not empty pad.creator &amp;&amp; apiBean.user == pad.creator}"
+										action="#{apiBean.togglePadLock(pad)}" value="#{pad.readOnly ? 'Unlock' : 'Lock'}" execute="@form" />
+									<h:outputText rendered="#{apiBean.user != pad.creator}" value="#{pad.readOnly ? 'Locked' : ''}" />
 								</h:column>
 								<h:column>
-									<f:facet name="header">
-										<h:outputText value="Delete" />
-									</f:facet>
-									<a4j:commandLink render="padForm"
-										rendered="#{pad.creator != null &amp;&amp; apiBean.user == pad.creator}"
+									<a4j:commandLink render="padForm" rendered="#{not empty pad.creator &amp;&amp; apiBean.user == pad.creator}"
 										onclick="if (!confirm('Do you really want to delete pad #{pad.name}?')) return false;"
 										action="#{apiBean.deletePad(pad)}" value="X" execute="@form" />
 								</h:column>

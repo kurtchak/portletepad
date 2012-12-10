@@ -2,10 +2,8 @@ package org.webepad.beans;
 
 import java.util.Collection;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 
-import javax.annotation.PostConstruct;
 import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.SessionScoped;
@@ -196,7 +194,7 @@ public class SessionBean {
 		return padBean.getChangeset(id);
 	}
 	
-	public Date getTime() {
-		return DateUtils.now();
+	public String getTime() {
+		return DateUtils.getShortDate(DateUtils.now());
 	}
 }

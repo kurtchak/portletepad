@@ -47,13 +47,7 @@ public class HibernateUserDAO implements UserDAO {
 	}
 
 	public User findUser(String name) {
-		User user;
-//		try {
-			user = (User) getSession().createQuery("from User u where u.name = :name").setParameter("name", name).uniqueResult();
-//		} catch NonUniqueResultException() {
-//			
-//		}
-		return user;
+		return (User) getSession().createQuery("from User u where u.name = :name").setParameter("name", name).uniqueResult();
 	}
 
 }

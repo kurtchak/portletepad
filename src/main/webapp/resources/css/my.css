@@ -91,7 +91,7 @@ div.padListBody {
 
 .padListBody table tbody tr td {
 	border: 0px;
-	padding: 10px;
+	padding: 5px;
 	margin: 0px;
 }
 
@@ -155,6 +155,16 @@ td.lock:hover {
 	border-radius: 5px;
 	z-index:999;
     float:left;
+}
+
+.datePanel {
+	margin: 0;
+	padding: 3px;
+	border-radius: 5px;
+	background: -webkit-linear-gradient(#FFF, #DDD);
+	background: -moz-linear-gradient(#FFF, #DDD);
+	background: -ms-linear-gradient(#FFF, #DDD);
+	background: -o-linear-gradient(#FFF, #DDD);
 }
 
 .popupSessionList a {

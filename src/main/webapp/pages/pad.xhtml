@@ -19,16 +19,7 @@
 		var userToken = 0; // the variable will together with user id identify the actual state of user text preferences
 		// - incrementing on every change of any preference affects the text
 		// CHANGE TO ATTRIBUTE POOL MANGEMENT - only one to the continual attributes set
-		
-		function adjustColor(color) {
-			$('#editor').find('span[class="cl'+actColor.substring(1)+'"]').toggleClass("cl"+actColor.substring(1)).toggleClass("cl"+color.substring(1));
-			actColor = color;
-		}
-
-		function resetColor() {
-			$('#editor').find('span[class="cl'+actColor.substring(1)+'"]').toggleClass("cl"+actColor.substring(1)).toggleClass("cl"+userColor.substring(1));
-			actColor = userColor;
-		}
+		var colored = true;
 	</script>
 </h:head>
 
@@ -38,21 +29,22 @@
 			<ui:include src="noauth.xhtml" />
 		</h:panelGroup>
 		<h:panelGroup rendered="#{apiBean.user != null}" layout="block">
-			<h:form id="mainForm" rendered="#{sessionBean.session.pad != null}">
+			<h:form id="mainForm" rendered="#{not empty sessionBean.session.pad}">
 				<a4j:push id="consumer" address="#{apiBean.topicAddress}" onerror="alert(event.rf.data)" ondataavailable="processMessage(event.rf.data)">
 					<a4j:ajax event="dataavailable" render="cunsumer"/>
 				</a4j:push>
 				<a4j:outputPanel id="pollPanel">
-					#{sessionBean.time}
+					<h:outputText class="datePanel" value="#{sessionBean.time}"/>
 					<a4j:poll id="pollElement" enabled="#{sessionBean.pollEnabled}" interval="1000" render="usersPanel,footerForm,pollPanel" status="none"/>
 				</a4j:outputPanel>
 				<h:panelGroup layout="block" id="padBar">
 					<a4j:commandLink styleClass="buttonLink right" value="leave" action="#{sessionBean.leave}"/>
-					<a4j:commandLink rendered="#{sessionBean.session.pad != null &amp;&amp; !sessionBean.session.pad.readOnly}" styleClass="buttonLink right" value="refresh" action="#{sessionBean.refresh}"/>
+					<a4j:commandLink styleClass="buttonLink right" value="refresh" action="#{sessionBean.refresh}"/>
 				</h:panelGroup>
 				<h:panelGroup layout="block" class="heading">
 					<a4j:commandLink rendered="#{!sessionBean.session.pad.readOnly}" value="Pad: #{sessionBean.session.pad.name}" action="#{sessionBean.actionRefresh}" execute="@form"/>
 					<h:outputText rendered="#{sessionBean.session.pad.readOnly}" value="Pad: #{sessionBean.session.pad.name} (ReadOnly mode)"/>
+					<a4j:commandLink rendered="#{sessionBean.session.pad.readOnly}" id="toggleUserColorsLink" styleClass="buttonLink" value="B/W" action="#" onclick="toggleUserColors()"/>
 				</h:panelGroup>
 	
 				<h:panelGroup rendered="#{sessionBean.session.pad == null}" layout="block">
@@ -82,6 +74,7 @@
 									</h:column>
 									<h:column>
 										<h:outputText value="#{padsession.padCreator ? '(creator)' : ''}" />
+										<h:outputText value="#{padsession.pad.readOnly ? '(readOnly)' : ''}" />
 									</h:column>
 								</h:dataTable>
 							</h:panelGrid>

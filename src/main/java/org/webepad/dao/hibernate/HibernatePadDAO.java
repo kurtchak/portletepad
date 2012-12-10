@@ -43,6 +43,14 @@ public class HibernatePadDAO implements PadDAO {
 		t.commit();
 	}
 	
+	public Pad unify(Pad pad) {
+		Session s = getSession();
+		Transaction t = s.beginTransaction();
+		Pad unifiedPad = (Pad) s.merge(pad);
+		t.commit();
+		return unifiedPad;
+	}
+	
 	public void delete(Pad pad) {
 		Session s = getSession();
 		Transaction t = s.beginTransaction();

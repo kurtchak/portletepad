@@ -12,7 +12,7 @@ Basically, it is a simple text editor that allows two or more remote users edit 
 Prerequisities
 ==============
 
-  - GateIn Portal 3.5.0.Beta02 running on JBoss AS 7.1.1
+  - GateIn Portal 3.5.0.Final running on JBoss AS 7.1.1
   - Apache Maven building automation tool (recommended: ver3.0.3)
 
 Configuration
@@ -61,10 +61,6 @@ For the sake of demonstration you can also copy our configuration with preset re
               <!-- JMS destinations definition -->
               <jms-destinations>
                   ...
-                  <jms-topic name="padTopic">
-                      <entry name="jms/topic/padTopic"/>
-                      <entry name="java:jboss/exported/jms/topic/padTopic"/>
-                  </jms-topic>
                   <jms-topic name="push">
                       <entry name="topic/push"/>
                       <entry name="java:jboss/exported/jms/topic/push"/>
@@ -113,4 +109,4 @@ Build and deploy
 Using application
 =================
 
-  As the application is pretty simple and intuitive, so once you are logged in, you can create, delete and edit pads. Enjoy.
+  As the application is pretty simple and intuitive, once you are logged in, you start can creating, editing and removing pads. I hope, you'll Enjoy it.

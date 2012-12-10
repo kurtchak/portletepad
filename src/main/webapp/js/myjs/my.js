@@ -1,4 +1,3 @@
-var doc = window.document;
 var oldText = " ";
 var newText = " ";
 var caretPos = 0;
@@ -10,12 +9,56 @@ var userColor = "";
 var nextSpanId = 0;
 var userId = 0;
 var padId = 0;
+var data = ""; // aggregate of subsequently added chars
+var changed = false; // flag reflecting if there was a change in text from last check
+var lastAction = '';
+var startPos = 0;
+var numRemoved = 0;
 
 // remote action sync elements
 var nextRemoteChangeButton = {};
 
 function setReadOnly(ro) {
 	readOnly = ro == null || ro == 'false' ? false : true;
+}
+function adjustColor(color) {
+	$('#editor').find('span[class="cl'+actColor.substring(1)+'"]').toggleClass("cl"+actColor.substring(1)).toggleClass("cl"+color.substring(1));
+	actColor = color;
+}
+
+function resetColor() {
+	$('#editor').find('span[class="cl'+actColor.substring(1)+'"]').toggleClass("cl"+actColor.substring(1)).toggleClass("cl"+userColor.substring(1));
+	actColor = userColor;
+}
+
+function toggleUserColors() {
+	if (colored) {
+		switchOffUserColors();
+		colored = false;
+	} else {
+		switchOnUserColors();
+		colored = true;
+	}
+}
+
+function switchOffUserColors() {
+	$('#editor').find('span[class="cl66CCFF"]').toggleClass("cl66CCFF").toggleClass("cl66CCFF_off");
+	$('#editor').find('span[class="clFF0000"]').toggleClass("clFF0000").toggleClass("clFF0000_off");
+	$('#editor').find('span[class="cl00FF00"]').toggleClass("cl00FF00").toggleClass("cl00FF00_off");
+	$('#editor').find('span[class="clFFFF00"]').toggleClass("clFFFF00").toggleClass("clFFFF00_off");
+	$('#editor').find('span[class="cl00FFFF"]').toggleClass("cl00FFFF").toggleClass("cl00FFFF_off");
+	$('#editor').find('span[class="clFF00FF"]').toggleClass("clFF00FF").toggleClass("clFF00FF_off");
+	$('#editor').find('span[class="clC0C0C0"]').toggleClass("clC0C0C0").toggleClass("clC0C0C0_off");
+}
+
+function switchOnUserColors() {
+	$('#editor').find('span[class="cl66CCFF_off"]').toggleClass("cl66CCFF").toggleClass("cl66CCFF_off");
+	$('#editor').find('span[class="clFF0000_off"]').toggleClass("clFF0000").toggleClass("clFF0000_off");
+	$('#editor').find('span[class="cl00FF00_off"]').toggleClass("cl00FF00").toggleClass("cl00FF00_off");
+	$('#editor').find('span[class="clFFFF00_off"]').toggleClass("clFFFF00").toggleClass("clFFFF00_off");
+	$('#editor').find('span[class="cl00FFFF_off"]').toggleClass("cl00FFFF").toggleClass("cl00FFFF_off");
+	$('#editor').find('span[class="clFF00FF_off"]').toggleClass("clFF00FF").toggleClass("clFF00FF_off");
+	$('#editor').find('span[class="clC0C0C0_off"]').toggleClass("clC0C0C0").toggleClass("clC0C0C0_off");
 }
 
 function processMessage(message) {
@@ -50,7 +93,7 @@ function processMessage(message) {
 			console.log("REFRESH EDITOR CONTENT");
 			buildEditorContent(body);
 		}
-	} else {
+	} else {changed
 		return;
 	}
 	console.log("Message processed: "+message);
@@ -106,6 +149,12 @@ function prepareEditorContent() {
 			nextRemoteChangeButton = $("#anchorForChangeAction").next();
 		}
 	}
+	
+	setInterval(function () {
+		if (changed) {
+			checkAndProcessLastChange('I', caretPos);
+		}
+	}, 1000);
 }
 
 /**
@@ -184,53 +233,54 @@ function processClick(e) {
 
 function writeRemoteChange(changeInfo) {
 	console.log("writeRemoteChange: "+changeInfo);
-	var fields = changeInfo.match(/^C:([WDA]):(\d+):(\d+):(.*):(\d*):(\d*):(\d*):(#[0-9a-fA-F]{6})/);
+	var fields = changeInfo.match(/^C:([WDA]):(\d*):(\d*):(.*):(\d*):(\d*):(\d*):(#[0-9a-fA-F]{6})?/);
 	if (fields == null) {
 		return;
 	}
 	logRemoteNotifier(fields);
 	
-	var remoteAction = fields[1];
-	var remoteSpanId = fields[2];
-	var remoteSpanPos = fields[3];
-	var remoteCharbank = fields[4].length <= 0 ? "" : fields[4];
-	var remoteLeftId = fields[5];
-	var remoteRightId = fields[6];
-	var remoteOffset = fields[7];
-	var remoteFgColor = fields[8];
-
-	var elem = getTextSlice(remoteSpanId);
-	var remoteChar = remoteCharbank;
-	if (remoteAction == "W") {
-		remoteChar = remoteCharbank == "" ? "\n" : remoteCharbank;
-		newText = newText.substring(0, remoteOffset) + remoteChar + newText.substring(remoteOffset);
-	} else if (remoteAction == "D") {
-		newText = newText.substring(0, remoteOffset) + newText.substring(remoteOffset+1);
+	var rAction = fields[1];
+	var rSpanId = fields[2];
+	var rSpanPos = fields[3];
+	var rData = fields[4].length <= 0 ? "" : fields[4];
+	var rNumRemoved = rAction == 'D' ? rData : 0; // number of removed chars if the action was Delete
+	var rLeftId = fields[5];
+	var rRightId = fields[6];
+	var rOffset = fields[7];
+	var rFgColor = fields[8];
+	
+	var elem = getTextSlice(rSpanId);
+	var remoteChar = rData;
+	if (rAction == "W") {
+		remoteChar = rData == "" ? "\n" : rData;
+		newText = newText.substring(0, rOffset) + remoteChar + newText.substring(rOffset);
+	} else if (rAction == "D") {
+		newText = newText.substring(0, rOffset) + newText.substring(rOffset+1);
 	}
 	console.log("REMOTE CHAR: "+ remoteChar);
 	if (!isNull(elem)) { console.log('TARGET ELEMENT('+($(elem).length)+'): '+getSpanIdNumber(elem)+":"+$(elem).text()); }
 	else { console.log('TARGET ELEMENT =>> NOT FOUND'); }
 
 	if (!isNull(elem)) { // found element with such id
-		var part = getCurrentTextSlicePart(elem, remoteSpanPos);
+		var part = getCurrentTextSlicePart(elem, rSpanPos);
 		var elem = part.elem;
-		remoteSpanPos = part.pos;
-		console.log('TARGET ELEMENT:'+$(elem).prop('id')+" => "+$(elem).text() + "["+remoteSpanPos+"]");
-		if (remoteSpanPos >= 0) { //TODO
+		rSpanPos = part.pos;
+		console.log('TARGET ELEMENT:'+$(elem).prop('id')+" => "+$(elem).text() + "["+rSpanPos+"]");
+		if (rSpanPos >= 0) { //TODO
 			var str = $(elem).text();
-			if (remoteAction == 'W') {
-				if (remoteSpanId == 0) { // newLine was entered
-					$(elem).text(str.substring(0,remoteSpanPos));
+			if (rAction == 'W') {
+				if (rSpanId == 0) { // newLine was entered
+					$(elem).text(str.substring(0,rSpanPos));
 					var br = createNewTextSlice('br');
-					var span = createNewTextSlice('span', getFgColor(elem), getNextSpanId(), str.substring(remoteSpanPos));
+					var span = createNewTextSlice('span', getFgColor(elem), getNextSpanId(), str.substring(rSpanPos));
 					$(br).insertAfter(elem);
 					$(span).insertAfter(br);
-				} else { console.log("$(elem).text(str.substring(0,"+(remoteSpanPos)+") + " + remoteCharbank + " + str.substring("+(remoteSpanPos)+") => "+(str.substring(0,remoteSpanPos) + remoteCharbank + str.substring(remoteSpanPos)));
-					$(elem).text(str.substring(0,remoteSpanPos) + remoteCharbank + str.substring(remoteSpanPos));
+				} else { console.log("$(elem).text(str.substring(0,"+(rSpanPos)+") + " + rData + " + str.substring("+(rSpanPos)+") => "+(str.substring(0,rSpanPos) + rData + str.substring(rSpanPos)));
+					$(elem).text(str.substring(0,rSpanPos) + rData + str.substring(rSpanPos));
 				}
-			} else if (remoteAction == 'D') { console.log("DELETING - NOW IMPLEMENTED");
-				if (remoteSpanPos < str.length) { console.log("remoteSpanPos < str.length: "+remoteSpanPos +":"+ str.length);
-					$(elem).text(str.substring(0,remoteSpanPos) + str.substring(parseInt(remoteSpanPos)+1)); console.log("str.substring(0,"+remoteSpanPos+") = " + str.substring(0,remoteSpanPos)); console.log("str.substring("+(parseInt(remoteSpanPos)+1)+") = " + str.substring(parseInt(remoteSpanPos)+1));
+			} else if (rAction == 'D') { console.log("DELETING - NOW IMPLEMENTED");
+				if (rSpanPos < str.length) { console.log("remoteSpanPos < str.length: "+rSpanPos +":"+ str.length);
+					$(elem).text(str.substring(0,rSpanPos) + str.substring(parseInt(rSpanPos)+parseInt(rNumRemoved))); console.log("str.substring(0,"+rSpanPos+") = " + str.substring(0,rSpanPos)); console.log("str.substring("+(parseInt(rSpanPos)+parseInt(rNumRemoved))+") = " + str.substring(parseInt(rSpanPos)+parseInt(rNumRemoved)));
 					if ($(elem).text().length == 0) { console.log("str.length == 0 => DELETING WHOLE SPAN");
 						var prev = $(elem).prev();
 						var next = $(elem).next();
@@ -243,45 +293,45 @@ function writeRemoteChange(changeInfo) {
 					alert('synchronize .. rebuild + translate + placeCaret ?');
 				}
 				return;
-			} else if (remoteAction == 'A') {
+			} else if (rAction == 'A') {
 				alert("ATTRIBUTE CHANGE - NOT IMPLEMENTED");
 			} else {
-				alert("UNKNOWN ACTION: "+ remoteAction);
+				alert("UNKNOWN ACTION: "+ rAction);
 				return;
 			}
 		} //console.log("(after): "+ $(elem) + " | text() -> " +$(elem).text());
-	} else if (remoteLeftId > 0) { console.log('REMOTE LEFT TAKEN');
-		var elem = getTextSlice(remoteLeftId);
-		var leftAtom = getCurrentTextSlicePart(elem, remoteSpanPos);
+	} else if (rLeftId > 0) { console.log('REMOTE LEFT TAKEN');
+		var elem = getTextSlice(rLeftId);
+		var leftAtom = getCurrentTextSlicePart(elem, rSpanPos);
 		var left = leftAtom.elem;
-		remoteSpanPos = leftAtom.pos;
+		rSpanPos = leftAtom.pos;
 		if (!isNull(left)) { // found neighbour
-			if (remoteSpanPos <= $(left).text().length) {
-				if (remoteSpanPos > 0 && remoteSpanPos < $(left).text().length) {
-					var rightStr = $(left).text().substring(remoteSpanPos);
-					$(left).text($(left).text().substring(0,remoteSpanPos));
-					var right = createNewTextSlice('span', getFgColor(left), remoteRightId, rightStr);
+			if (rSpanPos <= $(left).text().length) {
+				if (rSpanPos > 0 && rSpanPos < $(left).text().length) {
+					var rightStr = $(left).text().substring(rSpanPos);
+					$(left).text($(left).text().substring(0,rSpanPos));
+					var right = createNewTextSlice('span', getFgColor(left), rRightId, rightStr);
 					$(right).insertAfter(left); // TODO: insertIntoElem(elem, pos, elemInserted)
 				}
-				updateNextSpanId(remoteSpanId);
-				var n = createNewTextSlice('', remoteFgColor, remoteSpanId, remoteCharbank); console.log("inserting after left neighbour...");
+				updateNextSpanId(rSpanId);
+				var n = createNewTextSlice('', rFgColor, rSpanId, rData); console.log("inserting after left neighbour...");
 				$(n).insertAfter(left); // TODO: insertIntoElem(elem, pos, elemInserted)
 			} else {
-				alert('RemoteSpanPos('+remoteSpanPos+') exceedes length('+$(left).text().length+') of element.');
+				alert('RemoteSpanPos('+rSpanPos+') exceedes length('+$(left).text().length+') of element.');
 			}
 		} else {
 			alert('NOT FOUND LEFT SIBLING');
 		}
-	} else if (remoteRightId > 0) { console.log('REMOTE RIGHT TAKEN');
-		var right = getTextSlice(remoteRightId);
-		console.log(remoteRightId);
+	} else if (rRightId > 0) { console.log('REMOTE RIGHT TAKEN');
+		var right = getTextSlice(rRightId);
+		console.log(rRightId);
 		console.log($(right));
 		if (!isNull(right)) { // found neighbour
-			if (remoteAction == "W") {
-				updateNextSpanId(remoteSpanId);
-				var n = createNewTextSlice('', remoteFgColor, remoteSpanId, remoteCharbank); console.log("inserting before right neighbour...");
+			if (rAction == "W") {
+				updateNextSpanId(rSpanId);
+				var n = createNewTextSlice('', rFgColor, rSpanId, rData); console.log("inserting before right neighbour...");
 				$(n).insertBefore($(right).get(0)); // TODO: insertIntoElem(elem, pos, elemInserted)
-			} else if (remoteAction == "D") {
+			} else if (rAction == "D") {
 //				alert("Action D yet implemented");
 				console.log($(right));
 				console.log($(right).prev());
@@ -289,10 +339,10 @@ function writeRemoteChange(changeInfo) {
 					alert("deleting:"+$(right).prev());
 					$($(right).prev()).remove();
 				}
-			} else if (remoteAction == "A") {
+			} else if (rAction == "A") {
 				alert("Action A not implemented yet");
 			} else {
-				alert("Unknown action: "+remoteAction);
+				alert("Unknown action: "+rAction);
 			}
 
 		} else {
@@ -300,37 +350,38 @@ function writeRemoteChange(changeInfo) {
 		}
 		
 	} else if ($('#editor').find('span').length <= 1) { console.log('EMPTY EDITOR - FIRST ELEMENT IN IT');
-		updateNextSpanId(remoteSpanId);
-		var n = createNewTextSlice('', remoteFgColor, remoteSpanId, remoteCharbank); console.log("inserting the first element...");
+		updateNextSpanId(rSpanId);
+		var n = createNewTextSlice('', rFgColor, rSpanId, rData); console.log("inserting the first element...");
 		$(n).insertBefore($('#caret')); // TODO: insertIntoElem(elem, pos, elemInserted)
-	} else if (remoteOffset >= 0) {
-		console.log('WITHOUT SPAN NEIGHBOURS '+ (remoteCharbank == null) + ","+ (remoteCharbank == "") +","+ (remoteCharbank != null));
+	} else if (rOffset >= 0) {
+		console.log('WITHOUT SPAN NEIGHBOURS '+ (rData == null) + ","+ (rData == "") +","+ (rData != null));
 		var elem = $('#editor').find(':first');
-		while (textLength(elem) <= remoteOffset) {
-			console.log("without span neighbours: "+ $(elem).text() + ":"+remoteOffset);
-			remoteOffset -= textLength(elem);
-			if (remoteOffset == 0) {
+		while (textLength(elem) <= rOffset) {
+			console.log("without span neighbours: "+ $(elem).text() + ":"+rOffset);
+			rOffset -= textLength(elem);
+			if (rOffset == 0) {
 				break;
 			}
 			elem = $(elem).next().prop('id') != 'caret' ? $(elem).next() : $(elem).next().next();
 		}
-		if (remoteAction == "W") {
-			updateNextSpanId(remoteSpanId);
-			var n = createNewTextSlice('', remoteFgColor, remoteSpanId, remoteCharbank); console.log("inserting after left (br) neighbour...");
+		if (rAction == "W") {
+			updateNextSpanId(rSpanId);
+			var n = createNewTextSlice('', rFgColor, rSpanId, rData); console.log("inserting after left (br) neighbour...");
 			console.log($(n));
 			console.log('insertAfter');
 			console.log($(elem));
 			$(n).insertAfter(elem); // TODO:suppossing it is located between another two newLines
-		} else if (remoteAction == "D") {
-			$(elem).remove();
-		} else if (remoteAction == "A") {
+		} else if (rAction == "D") {
+			$(elem).next().remove();
+		} else if (rAction == "A") {
 			alert("action A not implemented");
 		} else {
-			alert("unknown action: "+remoteAction);
+			alert("unknown action: "+rAction);
 		}
 	} else {
 		alert('dajaka chyba');
 	}
+	checkAndProcessLastChange('R', caretPos);
 	updateCaretPos();
 	processNext();
 }
@@ -777,41 +828,39 @@ function updateCaretPos() {
 	console.log("NEW UPDATE CARET POS: " + caretPos);
 }
 
-function generateChangeset(evn) {
-	var data;
-	if (evn.ctrlKey && !(pasting(evn) || cutting(evn))) {
-		return;
-	} else if (pasting(evn)) {
-		data = window.clipboardData.getData('Text');
-		console.log('pasting: ' + data);
-	} else if (cutting(evn)) {
-		window.clipboardData.setData('Text', 'SOME TEMPORARY TEXT');
-		data = window.clipboardData.getData('Text');
-		console.log("cutting: " + data);
-	} else {
-		data = getChar(evn);
-		console.log("printable char: " + data);
-	}
-	var c;
+function generateChangeset() {
 	console.log("OLDTEXT:" + oldText + "| CARETPOS:" + caretPos + " | LENGTH: " + oldText.length);
 	console.log("NEWTEXT:" + newText + "| DATA:" + data + " | LENGTH: " + newText.length);
-	if (isPrintable(evn)) {
-		c = Changeset.makeSplice(oldText, caretPos, 0, data, null, pool);
-		caretPos += 1;
-	} else if (isBackspace(evn)) {
-		c = Changeset.makeSplice(oldText, caretPos - 1, 1, '', null, pool);
-		caretPos -= 1;
-	} else if (isDeleteKey(evn)) {
-		c = Changeset.makeSplice(oldText, caretPos, 1, '', null, pool);
-	} else {
-		console.log("NOT PRINTABLE NOR REMOVAL");
-		return;
-	}
+	var c = Changeset.makeSplice(oldText, startPos, numRemoved, data, null, pool);
+	console.log(c);
+	return c;
+}
+
+function processLastChangeToServer(pos) {
+	console.log("processLastChangeToServer()");
+	var c = generateChangeset();
+	startPos = pos;
+	data = "";
+	numRemoved = 0;
 	oldText = newText;
 	// dirty hack for working out the JSF - JS identification issues
 	$(editor).next().val(c);
 	$(editor).next().next().click();
-	console.log(c);
+}
+
+function checkAndProcessLastChange(actualAction, pos) {
+	console.log("checkAndProcessLastChange("+actualAction+", "+pos+") ["+lastAction+"]");
+	if (lastAction != '' && lastAction != actualAction) {
+		processLastChangeToServer(pos);
+		lastAction = (actualAction == 'W' || actualAction == 'D') ? actualAction : '';
+		changed = false;
+	} else if (actualAction != 'W' && actualAction != 'D') {
+		lastAction = '';
+		changed = false;
+	} else if (lastAction == '') {
+		lastAction = actualAction;
+		startPos = pos;
+	}
 }
 
 // TODO: TAB, multi-SHIFT
@@ -832,6 +881,7 @@ function writeDown(evn) {
 		needSlice = true;
 	}
 	if (isPrintable(evn)) {
+		checkAndProcessLastChange('W',caretPos);
 		var n;
 		console.log("printable:" + c);
 		if (needSlice) {
@@ -850,6 +900,8 @@ function writeDown(evn) {
 					setSpanId($(caret).next(), getNextSpanId());
 				}
 			}
+			changed = true;
+			$(editor).focus();
 		} else {
 			console.log("caretPos = " + caretPos);
 			if (caretPos == 0) {
@@ -868,10 +920,15 @@ function writeDown(evn) {
 		}
 		// position
 		newText = newText.substring(0, caretPos) + c + newText.substring(caretPos); // ?? insert into
+		caretPos += 1;
 		console.log("NEWTEXT: " + newText);
-		generateChangeset(evn);
+		data += c;
+//		generateChangeset(evn);
+		changed = true;
+		$(editor).focus();
+	} else {	
+		console.log("UNKNOWN PARAMETERS FOR WRITING A CHAR");
 	}
-	$(editor).focus();
 }
 
 function moveCaretLeft(step) {
@@ -914,6 +971,7 @@ function deleteChar(evn) {
 	editor = $("#editor");
 	var prev = $(caret).prev();
 	var next = $(caret).next();
+	checkAndProcessLastChange('D',caretPos);
 	if (isBackspace(evn) && !isNull(prev)) {
 		var txt = $(prev).text();
 		console.log("TXT: " + txt + "|");
@@ -933,8 +991,9 @@ function deleteChar(evn) {
 		console.log("REMOVED..." + newText.substring(caretPos - 1,caretPos));
 		newText = newText.substring(0, caretPos - 1) + newText.substring(caretPos);
 		console.log("NEWTEXT:" + newText + ":" + newText.length);
-//		$(editor).focus();
-		generateChangeset(evn);
+		changed = true;
+		numRemoved += 1;
+		$(editor).focus();
 	} else if (isDeleteKey(evn) && !isNull(next)) {
 		var txt = $(next).text();
 		console.log("TXT: " + txt + "|");
@@ -954,8 +1013,12 @@ function deleteChar(evn) {
 		console.log("REMOVED..." + newText.substring(caretPos, caretPos+1));
 		newText = newText.substring(0, caretPos) + newText.substring(caretPos+1);
 		console.log("NEWTEXT:" + newText + ":" + newText.length);
-//		$(editor).focus();
-		generateChangeset(evn);
+		caretPos -= 1;
+		changed = true;
+		numRemoved += 1;
+		$(editor).focus();
+	} else {
+		alert("UNKNOWN PARAMETERS FOR CHAR DELETING");
 	}
 }
 

@@ -30,6 +30,10 @@
     <param-name>org.jboss.portletbridge.WRAP_SCRIPTS</param-name>
     <param-value>true</param-value>
   </context-param>
+  <context-param>
+    <param-name>javax.faces.STATE_SAVING_METHOD</param-name>
+    <param-value>server</param-value>
+  </context-param>
   <session-config>
     <session-timeout>30</session-timeout>
   </session-config>
@@ -78,18 +82,6 @@
   <context-param>
     <param-name>jboss.socket.binding.port-offset</param-name>
     <param-value>0</param-value>
-  </context-param>
-  <context-param>
-    <param-name>jboss.jms.padtopic.name</param-name>
-    <param-value>jms/topic/padTopic</param-value>
-  </context-param>
-  <context-param>
-    <param-name>jboss.jms.padtopic.user</param-name>
-    <param-value>kurtcha</param-value>
-  </context-param>
-  <context-param>
-    <param-name>jboss.jms.padtopic.password</param-name>
-    <param-value>portletepad</param-value>
   </context-param>
   <context-param>
     <param-name>org.atmosphere.useBlocking</param-name>

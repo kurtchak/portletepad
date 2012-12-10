@@ -13,7 +13,9 @@ import org.slf4j.LoggerFactory;
 import org.webepad.control.PadAssembler;
 import org.webepad.control.PadContent;
 import org.webepad.control.PushControl;
+import org.webepad.dao.hibernate.HibernateDAOFactory;
 import org.webepad.exceptions.NotFoundException;
+import org.webepad.persistence.HibernateUtil;
 import org.webepad.utils.DateUtils;
 import org.webepad.utils.ExceptionHandler;
 import org.webepad.utils.PadColorPalette;
@@ -47,6 +49,13 @@ public class Pad extends NamedTemporalEntity {
 	}
 
 	public Map<Long,Session> getUserSessions() {
+		if (userSessions.isEmpty()) {
+			List<Session> sessions = HibernateDAOFactory.getInstance().getSessionDAO().readUserSessions(getId());
+			for (Session s : sessions) {
+				userSessions.put(s.getUser().getId(), s);
+				freeColors.remove(s.getColorCode());
+			}
+		}
 		return userSessions;
 	}
 
@@ -54,9 +63,10 @@ public class Pad extends NamedTemporalEntity {
 		this.userSessions = userSessions;
 	}
 	
-	private synchronized Session openNewSession(User user) throws Exception {
+	private synchronized Session createNewSession(User user) throws Exception {
 		Session session = new Session(user, this);//	public String lockPad() {
 		session.save();
+		userSessions.put(user.getId(), session);
 		log.info("OPENED NEW SESSION FOR '"+user.getName()+"':"+session.getId());
 		return session;
 	}
@@ -70,10 +80,11 @@ public class Pad extends NamedTemporalEntity {
 	public synchronized Session openSession(User user) {
 		Session session = null;
 		try {
-			if (userSessions.containsKey(user.getId())) {
-				session = userSessions.get(user.getId());
+			log.info("OPEN SESSION: USER SESSIONS: "+getUserSessions().size());
+			if (getUserSessions().containsKey(user.getId())) {
+				session = getUserSessions().get(user.getId());
 			} else {
-				session = openNewSession(user);
+				session = createNewSession(user);
 			}
 			session.open();
 		} catch (Exception e) {
@@ -101,6 +112,7 @@ public class Pad extends NamedTemporalEntity {
 		this.changesets.add(changeset);
 //		changeset.printCompact();
 		changeset.save();
+		log.info("CHANGESET SAVED WITH ID:"+changeset.getId()+" AND NUMBER:"+changeset.getNumber());
 		return padAssembler.applyLocalChangeset(changeset);
 	}
 
@@ -171,6 +183,8 @@ public class Pad extends NamedTemporalEntity {
 	}
 	
 	public synchronized String getFreeColor() throws Exception {
+		log.info("GET FREE COLOR...");
+		log.info("USER SESSIONS: "+getUserSessions().size());
 		if (freeColors.isEmpty()) {
 			throw new Exception("Out of free colors.");
 		}
@@ -185,8 +199,12 @@ public class Pad extends NamedTemporalEntity {
 		readOnly = ro;
 	}
 	
-	public Boolean getReadOnly() {
+	public Boolean isReadOnly() {
 		return readOnly == null ? false : readOnly;
+	}
+	
+	public Boolean getReadOnly() {
+		return isReadOnly();
 	}
 	
 	public PushControl getPushControl() {
@@ -198,7 +216,7 @@ public class Pad extends NamedTemporalEntity {
 	}
 
 	public Session getSessionByColor(String code) {
-		for (Session s : userSessions.values()) {
+		for (Session s : getUserSessions().values()) {
 			if (s.getColorCode().equals(code)) {
 				return s;
 			}

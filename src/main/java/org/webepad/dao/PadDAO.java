@@ -16,6 +16,8 @@ public interface PadDAO {
 
 	public void update(Pad pad);
 
+	public Pad unify(Pad pad);
+
 	public void delete(Pad pad);
 
 	public void delete(Long id);

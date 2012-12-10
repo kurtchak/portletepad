@@ -43,6 +43,7 @@ public class Session extends TemporalEntity {
 		colorCode = pad.getFreeColor();
 		setCreated(DateUtils.now());
 		lastSeen = getCreated();
+		log.info("CREATED NEW SESSION ID PAD:"+pad.getName()+"["+pad.hashCode()+"] FOR USER: "+user.getName()+" WITH COLOR: "+colorCode);
 	}
 	
 	/**
@@ -141,7 +142,7 @@ public class Session extends TemporalEntity {
 		sb.append(c.getAction()).append(":");
 		sb.append(spanId).append(":");
 		sb.append(spanPos).append(":");
-		sb.append(c.getCharbank() == null ? "" : c.getCharbank()).append(":");
+		sb.append(Changeset.DELETE.equals(c.getAction()) ? c.getLengthDifference() : c.getCharbank() == null ? "" : c.getCharbank()).append(":");
 		sb.append(leftId).append(":");
 		sb.append(rightId).append(":");
 		sb.append(c.getOffset()).append(":");
@@ -149,6 +150,7 @@ public class Session extends TemporalEntity {
 		return sb.toString();
 	}
 
+	// TODO: zvysit adresnost sprav
 	private void processToView(String info) throws MessageException {
 		log.info("processToView: "+info);
 		pad.getPushControl().sendMessage(info);
