@@ -971,8 +971,8 @@ function deleteChar(evn) {
 	editor = $("#editor");
 	var prev = $(caret).prev();
 	var next = $(caret).next();
-	checkAndProcessLastChange('D',caretPos);
 	if (isBackspace(evn) && !isNull(prev)) {
+		checkAndProcessLastChange('D',caretPos-1);
 		var txt = $(prev).text();
 		console.log("TXT: " + txt + "|");
 		console.log("REM: " + txt.charAt(txt.length - 1) + "|");
@@ -995,6 +995,7 @@ function deleteChar(evn) {
 		numRemoved += 1;
 		$(editor).focus();
 	} else if (isDeleteKey(evn) && !isNull(next)) {
+		checkAndProcessLastChange('D',caretPos);
 		var txt = $(next).text();
 		console.log("TXT: " + txt + "|");
 		console.log("REM: " + txt.charAt(0) + "|");
