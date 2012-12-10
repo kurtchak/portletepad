@@ -105,8 +105,11 @@ Build and deploy
 
     2. Once the war is created you can deploy it to GateIn Portal Portlet Container by copying it to underlying JBoss AS deploy folder:
         $ cp target/portletepad.war path/to/GateInPortal/standalone/deployments/
+        
+    3. Finally, when starting the JBoss AS, following VM arguments must by provided:
+        $ ./bin/standalone.sh "-Dexo.product.developing=true" "-Djboss.bind.address=localhost" "-Djboss.socket.binding.port-offset=0"
 
 Using application
 =================
 
-  As the application is pretty simple and intuitive, once you are logged in, you start can creating, editing and removing pads. I hope, you'll Enjoy it.
+  As the application is pretty simple and intuitive, once you are logged in, you can start with creating, editing and removing pads. I hope, you'll Enjoy it.
